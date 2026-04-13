@@ -1,191 +1,131 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html>
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#121b2a">
-  <title>IPCT</title>
-  <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <style>
-    :root{
-      --bg:#08101d; --card:#111b2c; --card2:#16233a; --border:rgba(255,255,255,.08);
-      --text:#eaf1ff; --muted:#9fb0cc; --blue:#58a6ff; --green:#57d37a; --red:#ff6b6b; --amber:#ffc94a;
-    }
-    *{box-sizing:border-box}
-    body{margin:0;background:linear-gradient(180deg,var(--bg),#0b1220);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-    .wrap{max-width:1280px;margin:0 auto;padding:16px}
-    .top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
-    .brand{display:flex;align-items:center;gap:12px}
-    .logo{width:54px;height:54px;border-radius:16px;display:grid;place-items:center;background:linear-gradient(135deg,#122038,#1d2d4d);border:1px solid var(--border);box-shadow:0 14px 36px rgba(0,0,0,.28);font-size:28px}
-    h1{font-size:24px;margin:0}
-    .sub{font-size:13px;color:var(--muted)}
-    .pill{padding:10px 14px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted);font-size:13px}
-    .tabs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
-    .tabbtn{background:rgba(255,255,255,.04);border:0;border-radius:14px;padding:11px 16px;color:#fff;cursor:pointer}
-    .tabbtn.active{background:linear-gradient(135deg,#2d7dff,#58a6ff)}
-    .section{display:none}
-    .section.active{display:block}
-    .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}
-    @media(max-width:980px){.grid{grid-template-columns:1fr}}
-    .card{background:linear-gradient(180deg,var(--card),#0f1727);border:1px solid var(--border);border-radius:22px;padding:16px;box-shadow:0 16px 40px rgba(0,0,0,.22)}
-    .card h2{margin:0 0 12px;font-size:16px}
-    .row{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-    @media(max-width:720px){.row{grid-template-columns:1fr}}
-    .field{margin-bottom:10px}
-    label{display:block;margin:0 0 6px;font-size:12px;color:var(--muted)}
-    input, select{width:100%;padding:13px 14px;border-radius:14px;border:1px solid var(--border);background:var(--card2);color:var(--text);outline:none}
-    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
-    button{border:0;border-radius:14px;padding:12px 16px;font-weight:700;cursor:pointer;color:white;background:linear-gradient(135deg,#2d7dff,#58a6ff)}
-    button.secondary{background:linear-gradient(135deg,#27344c,#334563)}
-    button.danger{background:linear-gradient(135deg,#cc5151,#ff6b6b)}
-    .tiny{padding:8px 10px;border-radius:10px;font-size:12px;margin:2px 2px;background:linear-gradient(135deg,#263750,#314766)}
-    .tiny.danger{background:linear-gradient(135deg,#bc4d4d,#ff6b6b)}
-    .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
-    @media(max-width:980px){.stats{grid-template-columns:repeat(2,1fr)}}
-    @media(max-width:560px){.stats{grid-template-columns:1fr}}
-    .stat{border-radius:18px;padding:14px;background:rgba(255,255,255,.03);border:1px solid var(--border)}
-    .stat .lbl{font-size:12px;color:var(--muted)}
-    .stat .val{font-size:24px;font-weight:800;margin-top:4px}
-    .mini{font-size:12px;color:var(--muted);margin-top:6px}
-    .matchbox{border-radius:18px;padding:14px;background:rgba(255,255,255,.03);border:1px solid var(--border)}
-    .chips{display:flex;gap:8px;flex-wrap:wrap}
-    .chip{display:inline-block;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:700}
-    .chip.play,.chip.back{background:rgba(88,166,255,.15);color:#9fc7ff}
-    .chip.eat,.chip.lay{background:rgba(76,175,80,.16);color:#8ff0a1}
-    .chip.win{background:rgba(76,175,80,.18);color:#8ff0a1}
-    .chip.loss{background:rgba(255,107,107,.15);color:#ff9b9b}
-    .chip.pending{background:rgba(255,201,74,.12);color:#ffd66f}
-    table{width:100%;border-collapse:collapse;margin-top:10px}
-    th,td{padding:10px 8px;border-bottom:1px solid var(--border);font-size:13px;text-align:left;vertical-align:top}
-    th{color:var(--muted);font-weight:600}
-    .searchline{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .searchline input{max-width:320px}
-    .footer{margin-top:14px;color:var(--muted);font-size:12px}
-  </style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IPCT Final Fixed</title>
+<link rel="manifest" href="manifest.json">
+<style>
+body{font-family:Arial;background:#0b1220;color:white;padding:10px}
+input,select,button{padding:8px;margin:4px;border-radius:6px;border:none}
+button{background:#2d7dff;color:white}
+table{width:100%;margin-top:10px;border-collapse:collapse}
+td,th{padding:6px;border-bottom:1px solid #444}
+</style>
 </head>
 <body>
-<div class="wrap">
-  <div class="top">
-    <div class="brand">
-      <div class="logo">🏏</div>
-      <div>
-        <h1>IPCT</h1>
-        <div class="sub">Excel-style cricket betting tracker with all match dropdowns and running totals</div>
-      </div>
-    </div>
-    <div class="pill">Installable PWA • Offline • Local storage</div>
-  </div>
 
-  <div class="tabs">
-    <button class="tabbtn active" onclick="showTab('tracker', this)">Tracker</button>
-    <button class="tabbtn" onclick="showTab('schedule', this)">Schedule</button>
-    <button class="tabbtn" onclick="showTab('report', this)">Report</button>
-  </div>
+<h2>IPCT FINAL (Fixed Logic)</h2>
 
-  <div id="tracker" class="section active">
-    <div class="grid">
-      <div class="card">
-        <h2>Bet Entry</h2>
-        <div class="field">
-          <label>Match Title</label>
-          <select id="match"></select>
-        </div>
-        <div class="field">
-          <label>Selected Match Info</label>
-          <div class="matchbox" id="matchInfo"></div>
-        </div>
-        <div class="row">
-          <div class="field"><label>Favorite Team</label><select id="favoriteTeam"></select></div>
-          <div class="field"><label>Final Winner</label><select id="finalWinner"></select></div>
-          <div class="field"><label>Action</label><select id="action"><option value="Eat">Eat</option><option value="Play">Play</option></select></div>
-          <div class="field"><label>Rating</label><input id="rating" type="number" placeholder="72"></div>
-          <div class="field"><label>Stake</label><input id="stake" type="number" placeholder="20000"></div>
-        </div>
-        <div class="actions">
-          <button id="saveBtn" onclick="saveEntry()">Add Entry</button>
-          <button class="secondary" onclick="clearForm()">Clear</button>
-          <button class="secondary" onclick="exportCSV()">Export CSV</button>
-          <button class="danger" onclick="resetAll()">Reset Data</button>
-        </div>
-      </div>
+<select id="match"></select>
+<select id="fav"></select>
+<select id="winner"></select>
 
-      <div class="card">
-        <h2>Preview</h2>
-        <div class="stats">
-          <div class="stat"><div class="lbl">Preview 1</div><div class="val" id="preview1">0.00</div><div class="mini">Excel F column</div></div>
-          <div class="stat"><div class="lbl">Preview 2</div><div class="val" id="preview2">0.00</div><div class="mini">Excel G column</div></div>
-          <div class="stat"><div class="lbl">Final P/L</div><div class="val" id="finalPLPreview">0.00</div><div class="mini">By winner</div></div>
-          <div class="stat"><div class="lbl">Result</div><div class="val" id="resultText">Pending</div><div class="mini">Favorite vs winner</div></div>
-          <div class="stat"><div class="lbl">Running Total</div><div class="val" id="grandTotal">0.00</div><div class="mini">Cumulative</div></div>
-        </div>
-        <div class="mini" style="margin-top:12px">Eat = negative rating on stake. Play = positive rating on stake.</div>
-        <div class="chips" style="margin-top:12px">
-          <span class="chip play">Play</span>
-          <span class="chip eat">Eat</span>
-          <span class="chip win">Favorite Won</span>
-          <span class="chip loss">Favorite Lost</span>
-          <span class="chip pending">Pending</span>
-        </div>
-      </div>
-    </div>
+<select id="action">
+<option>Eat</option>
+<option>Play</option>
+</select>
 
-    <div class="card" style="margin-top:16px">
-      <div class="searchline">
-        <h2 style="margin:0">Betting Entries</h2>
-        <input id="filter" placeholder="Filter by match or team">
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th>#</th><th>Match</th><th>Fav. Team</th><th>Winner</th><th>Action</th><th>Rating</th><th>Stake</th>
-            <th>Preview 1</th><th>Preview 2</th><th>Result</th><th>Final P/L</th><th>Run Total</th><th>Action</th>
-          </tr>
-        </thead>
-        <tbody id="betsBody"></tbody>
-      </table>
-    </div>
-  </div>
+<input id="rate" type="number" placeholder="Rate %">
+<input id="stake" type="number" placeholder="Stake">
 
-  <div id="schedule" class="section">
-    <div class="card">
-      <h2>All Matches</h2>
-      <div class="searchline" style="margin-bottom:10px">
-        <input id="matchSearch" placeholder="Search matches">
-      </div>
-      <table>
-        <thead><tr><th>No</th><th>Date</th><th>Time</th><th>Home</th><th>Away</th><th>Venue</th><th>Title</th></tr></thead>
-        <tbody id="scheduleBody"></tbody>
-      </table>
-      <div class="footer">Tap any match row to load it into the tracker.</div>
-    </div>
-  </div>
+<button onclick="add()">Add</button>
+<button onclick="resetAll()">Reset</button>
 
-  <div id="report" class="section">
-    <div class="grid">
-      <div class="card">
-        <h2>Summary</h2>
-        <div class="stats">
-          <div class="stat"><div class="lbl">Entries</div><div class="val" id="entriesCount">0</div></div>
-          <div class="stat"><div class="lbl">Wins</div><div class="val" id="winCount">0</div></div>
-          <div class="stat"><div class="lbl">Losses</div><div class="val" id="lossCount">0</div></div>
-          <div class="stat"><div class="lbl">Pending</div><div class="val" id="pendingCount">0</div></div>
-          <div class="stat"><div class="lbl">Net</div><div class="val" id="reportNet">0.00</div></div>
-        </div>
-      </div>
-      <div class="card">
-        <h2>Backup</h2>
-        <div class="actions">
-          <button onclick="exportCSV()">Export CSV</button>
-          <button class="secondary" onclick="resetAll()">Reset Saved Data</button>
-        </div>
-        <div class="footer">Data stays on this device until you export or reset it.</div>
-      </div>
-    </div>
-  </div>
+<h3 id="total"></h3>
 
-  <div class="footer">IPCT is optimized for mobile. For install, host it on HTTPS or use localhost.</div>
-</div>
-<script src="app.js"></script>
+<table>
+<tr>
+<th>#</th><th>Match</th><th>Fav</th><th>Winner</th>
+<th>Action</th><th>Rate</th><th>Stake</th>
+<th>Result</th><th>Running</th>
+</tr>
+<tbody id="data"></tbody>
+</table>
+
+<script>
+let matches = ["MI vs CSK","RCB vs KKR","GT vs DC"];
+let bets = JSON.parse(localStorage.getItem("bets")||"[]");
+
+function setup(){
+match.innerHTML=matches.map(m=>`<option>${m}</option>`).join("");
+fav.innerHTML="<option>Team A</option><option>Team B</option>";
+winner.innerHTML=fav.innerHTML;
+}
+setup();
+
+function calc(b){
+let rate=b.rate/100;
+let stake=b.stake;
+
+let favWin = b.fav===b.winner;
+
+if(b.action=="Eat"){
+if(favWin){
+return -stake*rate; // we pay %
+}else{
+return stake; // we win full
+}
+}else{
+if(favWin){
+return stake*rate; // we win %
+}else{
+return -stake; // we lose full
+}
+}
+}
+
+function add(){
+let b={
+match:match.value,
+fav:fav.value,
+winner:winner.value,
+action:action.value,
+rate:+rate.value,
+stake:+stake.value
+};
+
+bets.push(b);
+save();
+}
+
+function save(){
+localStorage.setItem("bets",JSON.stringify(bets));
+render();
+}
+
+function resetAll(){
+localStorage.removeItem("bets");
+bets=[];
+render();
+}
+
+function render(){
+let tb=data;
+tb.innerHTML="";
+let run=0;
+
+bets.forEach((b,i)=>{
+let n=calc(b);
+run+=n;
+
+tb.innerHTML+=`<tr>
+<td>${i+1}</td>
+<td>${b.match}</td>
+<td>${b.fav}</td>
+<td>${b.winner}</td>
+<td>${b.action}</td>
+<td>${b.rate}</td>
+<td>${b.stake}</td>
+<td>${n.toFixed(2)}</td>
+<td>${run.toFixed(2)}</td>
+</tr>`;
+});
+
+total.innerText="Running Total: "+run.toFixed(2);
+}
+
+render();
+</script>
+
 </body>
 </html>
