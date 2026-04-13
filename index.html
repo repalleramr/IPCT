@@ -1,40 +1,29 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>IPCT PRO</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IPCT Tracker</title>
 <link rel="manifest" href="manifest.json">
-<style>
-body{background:#0b0f1a;color:#fff;font-family:sans-serif;padding:10px;}
-select,input{padding:6px;margin:3px;}
-table{width:100%;font-size:12px;}
-td,th{text-align:center;padding:5px;}
-.win{color:#00ff88;}
-.lose{color:#ff4d4d;}
-</style>
 </head>
 <body>
+<h2>IPCT Betting Tracker</h2>
 
-<h2>🏏 IPCT PRO V2</h2>
+<label>Bet Type:</label>
+<select id="type">
+<option>BACK</option>
+<option>LAY</option>
+</select><br><br>
 
-<select id="match"></select>
-<input id="date" readonly>
+<label>Odds:</label>
+<input type="number" id="odds"><br><br>
 
-<select id="winner"></select>
+<label>Stake:</label>
+<input type="number" id="stake"><br><br>
 
-<h3>Total Net: ₹ <span id="total">0</span></h3>
+<button onclick="calc()">Calculate</button>
 
-<table border="1">
-<thead>
-<tr>
-<th>Fav</th><th>Act</th><th>Rate</th><th>Stake</th>
-<th>Win</th><th>Lose</th><th>Final</th>
-</tr>
-</thead>
-<tbody id="rows"></tbody>
-</table>
-
-<button onclick="addRow()">+ Add</button>
+<h3 id="result"></h3>
 
 <script src="app.js"></script>
 </body>
