@@ -2,33 +2,47 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>IPCT V2</title>
+<title>IPCT FINAL V3</title>
 <style>
 body{font-family:Arial;background:#0b1220;color:white;padding:10px}
 input,select,button{padding:8px;margin:4px;border-radius:6px;border:none}
 button{background:#2d7dff;color:white}
 table{width:100%;margin-top:10px;border-collapse:collapse}
 td,th{padding:6px;border-bottom:1px solid #444}
+.box{background:#111;padding:10px;margin-top:10px;border-radius:8px}
 </style>
 </head>
 <body>
 
-<h2>IPCT V2 (Match Based Winner)</h2>
+<h2>IPCT FINAL V3 (Live Exposure)</h2>
 
 <h3>Add Entry</h3>
 <select id="match"></select>
-<select id="fav"></select>
+<select id="fav">
+<option>Team A</option>
+<option>Team B</option>
+</select>
 <select id="action">
 <option>Eat</option>
 <option>Play</option>
 </select>
 <input id="rate" type="number" placeholder="Rate %">
 <input id="stake" type="number" placeholder="Stake">
+
 <button onclick="add()">Add Entry</button>
 
-<h3>Set Match Winner</h3>
+<div class="box">
+<h3>Live Preview (Match Exposure)</h3>
+<div id="previewWin"></div>
+<div id="previewLose"></div>
+</div>
+
+<h3>Set Winner</h3>
 <select id="matchWinner"></select>
-<select id="winner"></select>
+<select id="winner">
+<option>Team A</option>
+<option>Team B</option>
+</select>
 <button onclick="setWinner()">Set Winner</button>
 
 <h3 id="total"></h3>
@@ -43,40 +57,46 @@ td,th{padding:6px;border-bottom:1px solid #444}
 </table>
 
 <script>
-let matches = ["MI vs CSK","RCB vs KKR","GT vs DC"];
-let winners = {}; // per match
-let bets = JSON.parse(localStorage.getItem("bets_v2")||"[]");
+let matches = ["Match 1","Match 2","Match 3"];
+let bets = JSON.parse(localStorage.getItem("bets_v3")||"[]");
+let winners = JSON.parse(localStorage.getItem("winners_v3")||"{}");
 
 function setup(){
 match.innerHTML=matches.map(m=>`<option>${m}</option>`).join("");
 matchWinner.innerHTML=match.innerHTML;
-fav.innerHTML="<option>Team A</option><option>Team B</option>";
-winner.innerHTML=fav.innerHTML;
 }
 setup();
 
-function calc(b){
-let rate=b.rate/100;
-let stake=b.stake;
-let winTeam=winners[b.match];
-
-if(!winTeam) return {res:"Pending",net:0};
-
-let favWin = b.fav===winTeam;
-
-if(b.action=="Eat"){
-if(favWin){
-return {res:"Lose",net:-stake*rate};
+function calcEntry(action,rate,stake){
+let r=rate/100;
+if(action=="Eat"){
+return {win:-stake*r,lose:stake};
 }else{
-return {res:"Win",net:stake};
-}
-}else{
-if(favWin){
-return {res:"Win",net:stake*rate};
-}else{
-return {res:"Lose",net:-stake};
+return {win:stake*r,lose:-stake};
 }
 }
+
+function calcMatchPreview(){
+let m=match.value;
+let totalWin=0,totalLose=0;
+
+// previous entries
+bets.filter(b=>b.match==m).forEach(b=>{
+let c=calcEntry(b.action,b.rate,b.stake);
+totalWin+=c.win;
+totalLose+=c.lose;
+});
+
+// current input
+let r=+rate.value||0;
+let s=+stake.value||0;
+let c=calcEntry(action.value,r,s);
+
+totalWin+=c.win;
+totalLose+=c.lose;
+
+previewWin.innerText="If Favorite Wins → "+totalWin.toFixed(2);
+previewLose.innerText="If Favorite Loses → "+totalLose.toFixed(2);
 }
 
 function add(){
@@ -95,8 +115,19 @@ winners[matchWinner.value]=winner.value;
 save();
 }
 
+function calc(b){
+let w=winners[b.match];
+if(!w)return {res:"Pending",net:0};
+
+let favWin=b.fav==w;
+let c=calcEntry(b.action,b.rate,b.stake);
+
+return favWin?{res:"Win",net:c.win}:{res:"Lose",net:c.lose};
+}
+
 function save(){
-localStorage.setItem("bets_v2",JSON.stringify(bets));
+localStorage.setItem("bets_v3",JSON.stringify(bets));
+localStorage.setItem("winners_v3",JSON.stringify(winners));
 render();
 }
 
@@ -125,7 +156,12 @@ tb.innerHTML+=`<tr>
 total.innerText="Running Total: "+run.toFixed(2);
 }
 
+["match","fav","action","rate","stake"].forEach(id=>{
+document.getElementById(id).addEventListener("input",calcMatchPreview);
+});
+
 render();
+calcMatchPreview();
 </script>
 
 </body>
