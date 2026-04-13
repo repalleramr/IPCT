@@ -1,5 +1,3 @@
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open('kubera').then(cache => cache.addAll(['./']))
-  );
+self.addEventListener('install',e=>{
+ e.waitUntil(caches.open('ipctv2').then(c=>c.addAll(['./'])))
 });

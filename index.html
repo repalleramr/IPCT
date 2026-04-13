@@ -2,16 +2,40 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Kubera Back/Lay PRO</title>
+<title>IPCT PRO</title>
 <link rel="manifest" href="manifest.json">
+<style>
+body{background:#0b0f1a;color:#fff;font-family:sans-serif;padding:10px;}
+select,input{padding:6px;margin:3px;}
+table{width:100%;font-size:12px;}
+td,th{text-align:center;padding:5px;}
+.win{color:#00ff88;}
+.lose{color:#ff4d4d;}
+</style>
 </head>
 <body>
-<h2>🏏 Kubera Back/Lay PRO</h2>
-<p>App Installed Successfully</p>
-<script>
-if ('serviceWorker' in navigator) {
- navigator.serviceWorker.register('service-worker.js');
-}
-</script>
+
+<h2>🏏 IPCT PRO V2</h2>
+
+<select id="match"></select>
+<input id="date" readonly>
+
+<select id="winner"></select>
+
+<h3>Total Net: ₹ <span id="total">0</span></h3>
+
+<table border="1">
+<thead>
+<tr>
+<th>Fav</th><th>Act</th><th>Rate</th><th>Stake</th>
+<th>Win</th><th>Lose</th><th>Final</th>
+</tr>
+</thead>
+<tbody id="rows"></tbody>
+</table>
+
+<button onclick="addRow()">+ Add</button>
+
+<script src="app.js"></script>
 </body>
 </html>
