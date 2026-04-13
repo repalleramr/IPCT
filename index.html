@@ -2,11 +2,11 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>IPCT Full</title>
+<title>IPCT Pro</title>
 <link rel="manifest" href="manifest.json">
 <style>
 body{font-family:Arial;background:#0b1220;color:white;padding:10px}
-input,select,button{padding:10px;margin:5px;border-radius:8px;border:none}
+input,select,button{padding:8px;margin:4px;border-radius:6px;border:none}
 button{background:#2d7dff;color:white}
 table{width:100%;margin-top:10px;border-collapse:collapse}
 td,th{padding:6px;border-bottom:1px solid #444}
@@ -14,9 +14,10 @@ td,th{padding:6px;border-bottom:1px solid #444}
 </head>
 <body>
 
-<h2>IPCT Tracker (Full)</h2>
+<h2>IPCT PRO (Excel Clone)</h2>
 
-<input id="match" placeholder="Match"><br>
+<input id="match" placeholder="Match">
+<input id="date" type="date">
 <select id="type"><option>BACK</option><option>LAY</option></select>
 <input id="odds" type="number" placeholder="Odds">
 <input id="stake" type="number" placeholder="Stake">
@@ -27,61 +28,79 @@ td,th{padding:6px;border-bottom:1px solid #444}
 </select>
 
 <br>
-<button onclick="add()">Add Entry</button>
+<button onclick="add()">Add</button>
+<button onclick="exportCSV()">Export CSV</button>
 
 <h3 id="summary"></h3>
+
+<input id="filter" placeholder="Filter match..." oninput="render()">
 
 <table>
 <thead>
 <tr>
-<th>Match</th><th>Type</th><th>Odds</th><th>Stake</th>
-<th>Profit</th><th>Liability</th><th>Net</th>
+<th>#</th><th>Date</th><th>Match</th><th>Type</th>
+<th>Odds</th><th>Stake</th>
+<th>Profit</th><th>Liability</th>
+<th>Net</th><th>Balance</th><th>Action</th>
 </tr>
 </thead>
 <tbody id="data"></tbody>
 </table>
 
 <script>
-let bets = JSON.parse(localStorage.getItem("bets")||"[]");
+let bets=JSON.parse(localStorage.getItem("bets")||"[]");
 
-function calc(type,o,s){
-if(type=="BACK"){
-return {p:(o-1)*s,l:s}
-}else{
-return {p:s,l:(o-1)*s}
-}
+function calc(t,o,s){
+if(t=="BACK") return {p:(o-1)*s,l:s};
+return {p:s,l:(o-1)*s};
 }
 
 function net(b){
-if(!b.result)return 0;
+if(!b.result) return 0;
 if(b.result=="WIN") return b.p;
 return -b.l;
 }
 
 function add(){
-let m=document.getElementById("match").value;
-let t=document.getElementById("type").value;
-let o=parseFloat(document.getElementById("odds").value);
-let s=parseFloat(document.getElementById("stake").value);
-let r=document.getElementById("result").value;
+let b={
+date:date.value,
+match:match.value,
+type:type.value,
+odds:+odds.value,
+stake:+stake.value,
+result:result.value
+};
+let c=calc(b.type,b.odds,b.stake);
+b.p=c.p; b.l=c.l;
+bets.push(b);
+save();
+}
 
-let c=calc(t,o,s);
+function del(i){
+bets.splice(i,1);
+save();
+}
 
-bets.push({...c,match:m,type:t,odds:o,stake:s,result:r});
+function save(){
 localStorage.setItem("bets",JSON.stringify(bets));
 render();
 }
 
 function render(){
-let tb=document.getElementById("data");
+let tb=data;
 tb.innerHTML="";
 let total=0;
+let f=filter.value.toLowerCase();
 
-bets.forEach(b=>{
+bets.forEach((b,i)=>{
+if(f && !b.match.toLowerCase().includes(f)) return;
+
 let n=net(b);
 total+=n;
 
 tb.innerHTML+=`<tr>
+<td>${i+1}</td>
+<td>${b.date||""}</td>
 <td>${b.match}</td>
 <td>${b.type}</td>
 <td>${b.odds}</td>
@@ -89,10 +108,23 @@ tb.innerHTML+=`<tr>
 <td>${b.p.toFixed(2)}</td>
 <td>${b.l.toFixed(2)}</td>
 <td>${n.toFixed(2)}</td>
+<td>${total.toFixed(2)}</td>
+<td><button onclick="del(${i})">X</button></td>
 </tr>`;
 });
 
-document.getElementById("summary").innerText="Running Total P/L: "+total.toFixed(2);
+summary.innerText="Running Balance: "+total.toFixed(2);
+}
+
+function exportCSV(){
+let rows=[["date","match","type","odds","stake","profit","liability","result"]];
+bets.forEach(b=>rows.push([b.date,b.match,b.type,b.odds,b.stake,b.p,b.l,b.result]));
+let csv=rows.map(r=>r.join(",")).join("\n");
+let blob=new Blob([csv]);
+let a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="ipct.csv";
+a.click();
 }
 
 render();
