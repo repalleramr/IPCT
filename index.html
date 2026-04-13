@@ -2,8 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>IPCT Final Fixed</title>
-<link rel="manifest" href="manifest.json">
+<title>IPCT V2</title>
 <style>
 body{font-family:Arial;background:#0b1220;color:white;padding:10px}
 input,select,button{padding:8px;margin:4px;border-radius:6px;border:none}
@@ -14,40 +13,43 @@ td,th{padding:6px;border-bottom:1px solid #444}
 </head>
 <body>
 
-<h2>IPCT FINAL (Fixed Logic)</h2>
+<h2>IPCT V2 (Match Based Winner)</h2>
 
+<h3>Add Entry</h3>
 <select id="match"></select>
 <select id="fav"></select>
-<select id="winner"></select>
-
 <select id="action">
 <option>Eat</option>
 <option>Play</option>
 </select>
-
 <input id="rate" type="number" placeholder="Rate %">
 <input id="stake" type="number" placeholder="Stake">
+<button onclick="add()">Add Entry</button>
 
-<button onclick="add()">Add</button>
-<button onclick="resetAll()">Reset</button>
+<h3>Set Match Winner</h3>
+<select id="matchWinner"></select>
+<select id="winner"></select>
+<button onclick="setWinner()">Set Winner</button>
 
 <h3 id="total"></h3>
 
 <table>
 <tr>
-<th>#</th><th>Match</th><th>Fav</th><th>Winner</th>
-<th>Action</th><th>Rate</th><th>Stake</th>
-<th>Result</th><th>Running</th>
+<th>#</th><th>Match</th><th>Fav</th><th>Action</th>
+<th>Rate</th><th>Stake</th>
+<th>Result</th><th>Net</th><th>Running</th>
 </tr>
 <tbody id="data"></tbody>
 </table>
 
 <script>
 let matches = ["MI vs CSK","RCB vs KKR","GT vs DC"];
-let bets = JSON.parse(localStorage.getItem("bets")||"[]");
+let winners = {}; // per match
+let bets = JSON.parse(localStorage.getItem("bets_v2")||"[]");
 
 function setup(){
 match.innerHTML=matches.map(m=>`<option>${m}</option>`).join("");
+matchWinner.innerHTML=match.innerHTML;
 fav.innerHTML="<option>Team A</option><option>Team B</option>";
 winner.innerHTML=fav.innerHTML;
 }
@@ -56,46 +58,45 @@ setup();
 function calc(b){
 let rate=b.rate/100;
 let stake=b.stake;
+let winTeam=winners[b.match];
 
-let favWin = b.fav===b.winner;
+if(!winTeam) return {res:"Pending",net:0};
+
+let favWin = b.fav===winTeam;
 
 if(b.action=="Eat"){
 if(favWin){
-return -stake*rate; // we pay %
+return {res:"Lose",net:-stake*rate};
 }else{
-return stake; // we win full
+return {res:"Win",net:stake};
 }
 }else{
 if(favWin){
-return stake*rate; // we win %
+return {res:"Win",net:stake*rate};
 }else{
-return -stake; // we lose full
+return {res:"Lose",net:-stake};
 }
 }
 }
 
 function add(){
-let b={
+bets.push({
 match:match.value,
 fav:fav.value,
-winner:winner.value,
 action:action.value,
 rate:+rate.value,
 stake:+stake.value
-};
+});
+save();
+}
 
-bets.push(b);
+function setWinner(){
+winners[matchWinner.value]=winner.value;
 save();
 }
 
 function save(){
-localStorage.setItem("bets",JSON.stringify(bets));
-render();
-}
-
-function resetAll(){
-localStorage.removeItem("bets");
-bets=[];
+localStorage.setItem("bets_v2",JSON.stringify(bets));
 render();
 }
 
@@ -105,18 +106,18 @@ tb.innerHTML="";
 let run=0;
 
 bets.forEach((b,i)=>{
-let n=calc(b);
-run+=n;
+let c=calc(b);
+run+=c.net;
 
 tb.innerHTML+=`<tr>
 <td>${i+1}</td>
 <td>${b.match}</td>
 <td>${b.fav}</td>
-<td>${b.winner}</td>
 <td>${b.action}</td>
 <td>${b.rate}</td>
 <td>${b.stake}</td>
-<td>${n.toFixed(2)}</td>
+<td>${c.res}</td>
+<td>${c.net.toFixed(2)}</td>
 <td>${run.toFixed(2)}</td>
 </tr>`;
 });
