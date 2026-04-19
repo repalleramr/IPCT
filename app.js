@@ -1,36 +1,36 @@
 let bets = [];
-let team1Name = "Team 1";
-let team2Name = "Team 2";
+let team1Name = "Target A";
+let team2Name = "Target B";
 
 const iplMatches = [
-    "M1: Royal Challengers Bengaluru vs Sunrisers Hyderabad", "M2: Mumbai Indians vs Kolkata Knight Riders",
-    "M3: Rajasthan Royals vs Chennai Super Kings", "M4: Punjab Kings vs Gujarat Titans",
-    "M5: Lucknow Super Giants vs Delhi Capitals", "M6: Kolkata Knight Riders vs Sunrisers Hyderabad",
-    "M7: Chennai Super Kings vs Punjab Kings", "M8: Delhi Capitals vs Mumbai Indians",
-    "M9: Gujarat Titans vs Rajasthan Royals", "M10: Sunrisers Hyderabad vs Lucknow Super Giants",
-    "M11: Royal Challengers Bengaluru vs Chennai Super Kings", "M12: Kolkata Knight Riders vs Punjab Kings",
-    "M13: Rajasthan Royals vs Mumbai Indians", "M14: Delhi Capitals vs Gujarat Titans",
-    "M15: Kolkata Knight Riders vs Lucknow Super Giants", "M16: Rajasthan Royals vs Royal Challengers Bengaluru",
-    "M17: Punjab Kings vs Sunrisers Hyderabad", "M18: Chennai Super Kings vs Delhi Capitals",
-    "M19: Lucknow Super Giants vs Gujarat Titans", "M20: Mumbai Indians vs Royal Challengers Bengaluru",
-    "M21: Sunrisers Hyderabad vs Rajasthan Royals", "M22: Chennai Super Kings vs Kolkata Knight Riders",
-    "M23: Royal Challengers Bengaluru vs Lucknow Super Giants", "M24: Mumbai Indians vs Punjab Kings",
-    "M25: Gujarat Titans vs Kolkata Knight Riders", "M26: Royal Challengers Bengaluru vs Delhi Capitals",
-    "M27: Sunrisers Hyderabad vs Chennai Super Kings", "M28: Kolkata Knight Riders vs Rajasthan Royals",
-    "M29: Punjab Kings vs Lucknow Super Giants", "M30: Gujarat Titans vs Mumbai Indians",
-    "M31: Sunrisers Hyderabad vs Delhi Capitals", "M32: Lucknow Super Giants vs Rajasthan Royals",
-    "M33: Mumbai Indians vs Chennai Super Kings", "M34: Royal Challengers Bengaluru vs Gujarat Titans",
-    "M35: Delhi Capitals vs Punjab Kings", "M36: Rajasthan Royals vs Sunrisers Hyderabad",
-    "M37: Gujarat Titans vs Chennai Super Kings", "M38: Lucknow Super Giants vs Kolkata Knight Riders",
-    "M39: Delhi Capitals vs Royal Challengers Bengaluru", "M40: Punjab Kings vs Rajasthan Royals",
-    "M41: Mumbai Indians vs Sunrisers Hyderabad", "M42: Gujarat Titans vs Royal Challengers Bengaluru",
-    "M43: Rajasthan Royals vs Delhi Capitals", "M44: Chennai Super Kings vs Mumbai Indians",
-    "M45: Sunrisers Hyderabad vs Kolkata Knight Riders", "M46: Gujarat Titans vs Punjab Kings",
-    "M47: Mumbai Indians vs Lucknow Super Giants", "M48: Delhi Capitals vs Chennai Super Kings",
-    "M49: Sunrisers Hyderabad vs Punjab Kings", "M50: Lucknow Super Giants vs Royal Challengers Bengaluru",
-    "M51: Delhi Capitals vs Kolkata Knight Riders", "M52: Rajasthan Royals vs Gujarat Titans",
-    "M53: Chennai Super Kings vs Lucknow Super Giants", "M54: Royal Challengers Bengaluru vs Mumbai Indians",
-    "M55: Punjab Kings vs Delhi Capitals", "M56: Gujarat Titans vs Sunrisers Hyderabad"
+    "Mission 1: Royal Challengers Bengaluru vs Sunrisers Hyderabad", "Mission 2: Mumbai Indians vs Kolkata Knight Riders",
+    "Mission 3: Rajasthan Royals vs Chennai Super Kings", "Mission 4: Punjab Kings vs Gujarat Titans",
+    "Mission 5: Lucknow Super Giants vs Delhi Capitals", "Mission 6: Kolkata Knight Riders vs Sunrisers Hyderabad",
+    "Mission 7: Chennai Super Kings vs Punjab Kings", "Mission 8: Delhi Capitals vs Mumbai Indians",
+    "Mission 9: Gujarat Titans vs Rajasthan Royals", "Mission 10: Sunrisers Hyderabad vs Lucknow Super Giants",
+    "Mission 11: Royal Challengers Bengaluru vs Chennai Super Kings", "Mission 12: Kolkata Knight Riders vs Punjab Kings",
+    "Mission 13: Rajasthan Royals vs Mumbai Indians", "Mission 14: Delhi Capitals vs Gujarat Titans",
+    "Mission 15: Kolkata Knight Riders vs Lucknow Super Giants", "Mission 16: Rajasthan Royals vs Royal Challengers Bengaluru",
+    "Mission 17: Punjab Kings vs Sunrisers Hyderabad", "Mission 18: Chennai Super Kings vs Delhi Capitals",
+    "Mission 19: Lucknow Super Giants vs Gujarat Titans", "Mission 20: Mumbai Indians vs Royal Challengers Bengaluru",
+    "Mission 21: Sunrisers Hyderabad vs Rajasthan Royals", "Mission 22: Chennai Super Kings vs Kolkata Knight Riders",
+    "Mission 23: Royal Challengers Bengaluru vs Lucknow Super Giants", "Mission 24: Mumbai Indians vs Punjab Kings",
+    "Mission 25: Gujarat Titans vs Kolkata Knight Riders", "Mission 26: Royal Challengers Bengaluru vs Delhi Capitals",
+    "Mission 27: Sunrisers Hyderabad vs Chennai Super Kings", "Mission 28: Kolkata Knight Riders vs Rajasthan Royals",
+    "Mission 29: Punjab Kings vs Lucknow Super Giants", "Mission 30: Gujarat Titans vs Mumbai Indians",
+    "Mission 31: Sunrisers Hyderabad vs Delhi Capitals", "Mission 32: Lucknow Super Giants vs Rajasthan Royals",
+    "Mission 33: Mumbai Indians vs Chennai Super Kings", "Mission 34: Royal Challengers Bengaluru vs Gujarat Titans",
+    "Mission 35: Delhi Capitals vs Punjab Kings", "Mission 36: Rajasthan Royals vs Sunrisers Hyderabad",
+    "Mission 37: Gujarat Titans vs Chennai Super Kings", "Mission 38: Lucknow Super Giants vs Kolkata Knight Riders",
+    "Mission 39: Delhi Capitals vs Royal Challengers Bengaluru", "Mission 40: Punjab Kings vs Rajasthan Royals",
+    "Mission 41: Mumbai Indians vs Sunrisers Hyderabad", "Mission 42: Gujarat Titans vs Royal Challengers Bengaluru",
+    "Mission 43: Rajasthan Royals vs Delhi Capitals", "Mission 44: Chennai Super Kings vs Mumbai Indians",
+    "Mission 45: Sunrisers Hyderabad vs Kolkata Knight Riders", "Mission 46: Gujarat Titans vs Punjab Kings",
+    "Mission 47: Mumbai Indians vs Lucknow Super Giants", "Mission 48: Delhi Capitals vs Chennai Super Kings",
+    "Mission 49: Sunrisers Hyderabad vs Punjab Kings", "Mission 50: Lucknow Super Giants vs Royal Challengers Bengaluru",
+    "Mission 51: Delhi Capitals vs Kolkata Knight Riders", "Mission 52: Rajasthan Royals vs Gujarat Titans",
+    "Mission 53: Chennai Super Kings vs Lucknow Super Giants", "Mission 54: Royal Challengers Bengaluru vs Mumbai Indians",
+    "Mission 55: Punjab Kings vs Delhi Capitals", "Mission 56: Gujarat Titans vs Sunrisers Hyderabad"
 ];
 
 function initMatchList() {
@@ -45,7 +45,7 @@ function initMatchList() {
 
 function loadSelectedMatch() {
     if (bets.length > 0) {
-        if (confirm("You are selecting a new match. Do you want to clear your existing bets?")) {
+        if (confirm("Initiate new mission? This will burn current logs.")) {
             bets = [];
             document.getElementById('finalWinner').value = "";
         }
@@ -57,8 +57,8 @@ function loadSelectedMatch() {
         team1Name = teams[0];
         team2Name = teams[1];
     } else {
-        team1Name = "Team 1";
-        team2Name = "Team 2";
+        team1Name = "Target A";
+        team2Name = "Target B";
     }
     updateDropdowns();
     calculateTable();
@@ -67,7 +67,7 @@ function loadSelectedMatch() {
 function updateDropdowns() {
     const winnerSelect = document.getElementById('finalWinner');
     const currentWinner = winnerSelect.value;
-    winnerSelect.innerHTML = `<option value="">-- Select Winner Later --</option>
+    winnerSelect.innerHTML = `<option value="">-- Pending Clearance --</option>
                               <option value="${team1Name}">${team1Name}</option>
                               <option value="${team2Name}">${team2Name}</option>`;
     if (currentWinner === team1Name || currentWinner === team2Name) winnerSelect.value = currentWinner;
@@ -146,7 +146,7 @@ function addBet() {
     const stake = parseFloat(document.getElementById('entryStake').value);
 
     if (!team || isNaN(rate) || isNaN(stake)) {
-        alert("Please fill in Rate and Stake");
+        alert("Mission Control: Required Intel Missing.");
         return;
     }
 
@@ -172,7 +172,7 @@ function editBet(index) {
 }
 
 function deleteBet(index) {
-    if(confirm("Delete this bet?")) {
+    if(confirm("Scrub this entry from the ledger?")) {
         bets.splice(index, 1);
         updateLivePreview();
         calculateTable();
@@ -180,7 +180,7 @@ function deleteBet(index) {
 }
 
 function clearBets() {
-    if(confirm("Are you sure you want to clear all bets and start a fresh match?")) {
+    if(confirm("Confirm Protocol Zero: Burn all data for this mission?")) {
         bets = [];
         document.getElementById('finalWinner').value = "";
         updateLivePreview();
@@ -188,19 +188,18 @@ function clearBets() {
     }
 }
 
-// --- NEW FILE PICKER CSV EXPORT FEATURE ---
 async function saveAsCSV() {
     if (bets.length === 0) {
-        alert("No bets to export!");
+        alert("No intel to export!");
         return;
     }
 
-    const matchName = document.getElementById('matchSelect').value || "Custom Match";
+    const matchName = document.getElementById('matchSelect').value || "Classified Mission";
     const finalWinner = document.getElementById('finalWinner').value;
 
-    let csvContent = `Match,${matchName}\n`;
-    csvContent += `Final Winner,${finalWinner || 'Not Selected'}\n\n`;
-    csvContent += "Bet #,Team,Action,Rate,Stake,P/L (Fav Wins),P/L (Fav Loses),Final P/L\n";
+    let csvContent = `Mission,${matchName}\n`;
+    csvContent += `Asset Secured,${finalWinner || 'Pending Clearance'}\n\n`;
+    csvContent += "Log #,Faction,Tactic,Intel,Funds,Yield A,Yield B,Final Result\n";
 
     bets.forEach((bet, index) => {
         let finalPL = 0;
@@ -217,32 +216,26 @@ async function saveAsCSV() {
     });
 
     try {
-        // Use modern File System Access API (Prompts user to choose exact folder/file name)
         if (window.showSaveFilePicker) {
             const handle = await window.showSaveFilePicker({
-                suggestedName: 'tracker_export.csv',
-                types: [{
-                    description: 'CSV File',
-                    accept: { 'text/csv': ['.csv'] },
-                }],
+                suggestedName: 'mi6_intel_export.csv',
+                types: [{ description: 'CSV File', accept: { 'text/csv': ['.csv'] } }],
             });
             const writable = await handle.createWritable();
             await writable.write(csvContent);
             await writable.close();
-            alert("File saved successfully!");
         } else {
-            // Fallback for older browsers / some mobile devices
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.setAttribute("href", url);
-            link.setAttribute("download", "tracker_export.csv");
+            link.setAttribute("download", "mi6_intel_export.csv");
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
         }
     } catch (err) {
-        console.log("Save cancelled or failed:", err);
+        console.log("Export aborted.", err);
     }
 }
 
@@ -285,7 +278,7 @@ function calculateTable() {
             <td>${isFinal ? formatMoney(finalPL) : '-'}</td>
             <td class="action-btns">
                 <button class="btn-warning" onclick="editBet(${index})">Edit</button>
-                <button class="btn-danger" onclick="deleteBet(${index})">Del</button>
+                <button class="btn-danger" onclick="deleteBet(${index})">Burn</button>
             </td>
         `;
         tbody.appendChild(tr);
