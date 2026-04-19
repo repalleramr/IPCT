@@ -133,7 +133,15 @@ function calculateTable() {
     });
 
     document.getElementById('totalNetProfit').innerHTML = formatMoney(runningTotal);
+}// --- SERVICE WORKER REGISTRATION ---
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service Worker registered successfully!'))
+            .catch(err => console.error('Service Worker registration failed:', err));
+    });
 }
+
 
 // Initialize
 updateTeamNames();
