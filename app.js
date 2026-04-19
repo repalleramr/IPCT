@@ -1,147 +1,46 @@
-let bets = [];
-
-function updateTeamNames() {
-    const t1 = document.getElementById('team1').value || 'Team 1';
-    const t2 = document.getElementById('team2').value || 'Team 2';
-
-    // Update Winner Dropdown
-    const winnerSelect = document.getElementById('finalWinner');
-    const currentWinner = winnerSelect.value;
-    winnerSelect.innerHTML = `<option value="">-- Select Winner Later --</option>
-                              <option value="${t1}">${t1}</option>
-                              <option value="${t2}">${t2}</option>`;
-    if (currentWinner === t1 || currentWinner === t2) winnerSelect.value = currentWinner;
-
-    // Update Entry Dropdown
-    const entrySelect = document.getElementById('entryTeam');
-    const currentEntry = entrySelect.value;
-    entrySelect.innerHTML = `<option value="${t1}">${t1}</option>
-                             <option value="${t2}">${t2}</option>`;
-    if (currentEntry === t1 || currentEntry === t2) entrySelect.value = currentEntry;
-
-    updateLivePreview();
+:root {
+    --bg-color: #121212;
+    --card-bg: #1e1e1e;
+    --text-main: #ffffff;
+    --text-muted: #aaaaaa;
+    --accent: #00e676;
+    --danger: #ff5252;
+    --border: #333333;
 }
 
-function calculatePreview(action, rate, stake) {
-    let favPL = 0;
-    let oppPL = 0;
-    
-    if (!rate || !stake) return { favPL, oppPL };
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
 
-    if (action === 'Play') {
-        favPL = stake * (rate / 100);
-        oppPL = -stake;
-    } else if (action === 'Eat') {
-        favPL = -(stake * (rate / 100));
-        oppPL = stake;
-    }
-    return { favPL, oppPL };
-}
+body { background-color: var(--bg-color); color: var(--text-main); font-size: 14px; }
 
-function updateLivePreview() {
-    const t1 = document.getElementById('team1').value || 'Team 1';
-    const t2 = document.getElementById('team2').value || 'Team 2';
-    const favTeam = document.getElementById('entryTeam').value;
-    const action = document.getElementById('entryAction').value;
-    const rate = parseFloat(document.getElementById('entryRate').value) || 0;
-    const stake = parseFloat(document.getElementById('entryStake').value) || 0;
+.app-container { max-width: 800px; margin: 0 auto; padding: 10px; }
 
-    const { favPL, oppPL } = calculatePreview(action, rate, stake);
+header h1 { text-align: center; margin: 15px 0; font-size: 1.5rem; color: var(--accent); }
 
-    let t1Preview = 0, t2Preview = 0;
-    if (favTeam === t1) {
-        t1Preview = favPL; t2Preview = oppPL;
-    } else {
-        t2Preview = favPL; t1Preview = oppPL;
-    }
+.card { background-color: var(--card-bg); border-radius: 8px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+.card h3 { margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 5px; color: var(--accent); }
 
-    const t1El = document.getElementById('previewTeam1');
-    const t2El = document.getElementById('previewTeam2');
+.input-group { display: flex; gap: 10px; align-items: center; }
+.input-group input, .input-group select { flex: 1; padding: 10px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-color); color: var(--text-main); }
+.mt-2 { margin-top: 10px; }
 
-    t1El.innerText = `${t1}: ${t1Preview.toFixed(2)}`;
-    t2El.innerText = `${t2}: ${t2Preview.toFixed(2)}`;
+.input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+.field label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; }
+.field input, .field select { width: 100%; padding: 10px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-color); color: var(--text-main); }
 
-    t1El.className = t1Preview > 0 ? 'positive' : (t1Preview < 0 ? 'negative' : 'neutral');
-    t2El.className = t2Preview > 0 ? 'positive' : (t2Preview < 0 ? 'negative' : 'neutral');
-}
+.live-preview { background: var(--bg-color); padding: 10px; border-radius: 6px; border: 1px solid #444; margin-bottom: 15px; }
+.live-preview p { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 5px; }
+.preview-teams { display: flex; justify-content: space-between; font-weight: bold; }
 
-function addBet() {
-    const team = document.getElementById('entryTeam').value;
-    const action = document.getElementById('entryAction').value;
-    const rate = parseFloat(document.getElementById('entryRate').value);
-    const stake = parseFloat(document.getElementById('entryStake').value);
+button { width: 100%; padding: 12px; background-color: var(--accent); color: #000; border: none; border-radius: 4px; font-weight: bold; font-size: 1rem; cursor: pointer; }
+button:active { opacity: 0.8; }
 
-    if (!team || isNaN(rate) || isNaN(stake)) {
-        alert("Please fill in Team, Rate, and Stake");
-        return;
-    }
+.table-wrapper { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 600px; }
+th, td { padding: 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+th { background-color: #2a2a2a; color: var(--text-muted); }
 
-    const { favPL, oppPL } = calculatePreview(action, rate, stake);
+.totals-bar { margin-top: 15px; text-align: right; font-size: 1.2rem; padding-top: 10px; border-top: 2px solid var(--border); }
 
-    bets.push({
-        id: bets.length + 1,
-        team, action, rate, stake, favPL, oppPL
-    });
-
-    // Clear inputs
-    document.getElementById('entryRate').value = '';
-    document.getElementById('entryStake').value = '';
-    updateLivePreview();
-    calculateTable();
-}
-
-function formatMoney(num) {
-    let str = num.toFixed(2);
-    if (num > 0) return `<span class="positive">+${str}</span>`;
-    if (num < 0) return `<span class="negative">${str}</span>`;
-    return `<span class="neutral">${str}</span>`;
-}
-
-function calculateTable() {
-    const tbody = document.getElementById('betTableBody');
-    const finalWinner = document.getElementById('finalWinner').value;
-    tbody.innerHTML = '';
-
-    let runningTotal = 0;
-
-    bets.forEach(bet => {
-        let finalPL = 0;
-        let isFinal = false;
-
-        if (finalWinner) {
-            isFinal = true;
-            if (finalWinner === bet.team) {
-                finalPL = bet.favPL;
-            } else {
-                finalPL = bet.oppPL;
-            }
-            runningTotal += finalPL;
-        }
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${bet.id}</td>
-            <td>${bet.team}</td>
-            <td>${bet.action}</td>
-            <td>${bet.rate}</td>
-            <td>${bet.stake}</td>
-            <td>${formatMoney(bet.favPL)}</td>
-            <td>${formatMoney(bet.oppPL)}</td>
-            <td>${isFinal ? formatMoney(finalPL) : '-'}</td>
-        `;
-        tbody.appendChild(tr);
-    });
-
-    document.getElementById('totalNetProfit').innerHTML = formatMoney(runningTotal);
-}// --- SERVICE WORKER REGISTRATION ---
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker registered successfully!'))
-            .catch(err => console.error('Service Worker registration failed:', err));
-    });
-}
-
-
-// Initialize
-updateTeamNames();
+.positive { color: var(--accent) !important; }
+.negative { color: var(--danger) !important; }
+.neutral { color: var(--text-main) !important; }
