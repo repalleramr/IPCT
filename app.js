@@ -95,7 +95,6 @@ function calculatePreview(action, rate, stake) {
     return { favPL, oppPL };
 }
 
-// Calculate the base exposure from already saved bets
 function getBaseExposure() {
     let t1Base = 0, t2Base = 0;
     bets.forEach(b => {
@@ -119,7 +118,6 @@ function updateLivePreview() {
     const { favPL, oppPL } = calculatePreview(action, rate, stake);
     const { t1Base, t2Base } = getBaseExposure();
 
-    // Add Live preview to Base exposure
     let t1Preview = t1Base;
     let t2Preview = t2Base;
 
@@ -168,7 +166,6 @@ function editBet(index) {
     document.getElementById('entryRate').value = bet.rate;
     document.getElementById('entryStake').value = bet.stake;
     
-    // Remove the bet from array so it can be re-added
     bets.splice(index, 1);
     updateLivePreview();
     calculateTable();
@@ -188,6 +185,64 @@ function clearBets() {
         document.getElementById('finalWinner').value = "";
         updateLivePreview();
         calculateTable();
+    }
+}
+
+// --- NEW FILE PICKER CSV EXPORT FEATURE ---
+async function saveAsCSV() {
+    if (bets.length === 0) {
+        alert("No bets to export!");
+        return;
+    }
+
+    const matchName = document.getElementById('matchSelect').value || "Custom Match";
+    const finalWinner = document.getElementById('finalWinner').value;
+
+    let csvContent = `Match,${matchName}\n`;
+    csvContent += `Final Winner,${finalWinner || 'Not Selected'}\n\n`;
+    csvContent += "Bet #,Team,Action,Rate,Stake,P/L (Fav Wins),P/L (Fav Loses),Final P/L\n";
+
+    bets.forEach((bet, index) => {
+        let finalPL = 0;
+        let isFinal = false;
+        if (finalWinner) {
+            isFinal = true;
+            if (finalWinner === bet.team) {
+                finalPL = bet.favPL;
+            } else {
+                finalPL = bet.oppPL;
+            }
+        }
+        csvContent += `${index + 1},${bet.team},${bet.action},${bet.rate},${bet.stake},${bet.favPL},${bet.oppPL},${isFinal ? finalPL : '-'}\n`;
+    });
+
+    try {
+        // Use modern File System Access API (Prompts user to choose exact folder/file name)
+        if (window.showSaveFilePicker) {
+            const handle = await window.showSaveFilePicker({
+                suggestedName: 'tracker_export.csv',
+                types: [{
+                    description: 'CSV File',
+                    accept: { 'text/csv': ['.csv'] },
+                }],
+            });
+            const writable = await handle.createWritable();
+            await writable.write(csvContent);
+            await writable.close();
+            alert("File saved successfully!");
+        } else {
+            // Fallback for older browsers / some mobile devices
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", "tracker_export.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    } catch (err) {
+        console.log("Save cancelled or failed:", err);
     }
 }
 
