@@ -1,168 +1,93 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>IPCT FINAL V3</title>
-<style>
-body{font-family:Arial;background:#0b1220;color:white;padding:10px}
-input,select,button{padding:8px;margin:4px;border-radius:6px;border:none}
-button{background:#2d7dff;color:white}
-table{width:100%;margin-top:10px;border-collapse:collapse}
-td,th{padding:6px;border-bottom:1px solid #444}
-.box{background:#111;padding:10px;margin-top:10px;border-radius:8px}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cricket Back/Lay Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
 </head>
 <body>
+    <div class="app-container">
+        <header>
+            <h1>Match Tracker</h1>
+        </header>
 
-<h2>IPCT FINAL V3 (Live Exposure)</h2>
+        <section class="setup-section card">
+            <h3>1. Match Setup</h3>
+            <div class="input-group">
+                <input type="text" id="team1" placeholder="Team 1 Name (e.g., CSK)" oninput="updateTeamNames()">
+                <input type="text" id="team2" placeholder="Team 2 Name (e.g., MI)" oninput="updateTeamNames()">
+            </div>
+            <div class="input-group mt-2">
+                <label for="finalWinner">Final Match Winner:</label>
+                <select id="finalWinner" onchange="calculateTable()">
+                    <option value="">-- Select Winner Later --</option>
+                </select>
+            </div>
+        </section>
 
-<h3>Add Entry</h3>
-<select id="match"></select>
-<select id="fav">
-<option>Team A</option>
-<option>Team B</option>
-</select>
-<select id="action">
-<option>Eat</option>
-<option>Play</option>
-</select>
-<input id="rate" type="number" placeholder="Rate %">
-<input id="stake" type="number" placeholder="Stake">
+        <section class="entry-section card">
+            <h3>2. New Bet Entry</h3>
+            <div class="input-grid">
+                <div class="field">
+                    <label>Favorite Team</label>
+                    <select id="entryTeam" onchange="updateLivePreview()"></select>
+                </div>
+                <div class="field">
+                    <label>Action</label>
+                    <select id="entryAction" onchange="updateLivePreview()">
+                        <option value="Play">Play (Back)</option>
+                        <option value="Eat">Eat (Lay)</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Rate (Paise)</label>
+                    <input type="number" id="entryRate" placeholder="e.g. 91" oninput="updateLivePreview()">
+                </div>
+                <div class="field">
+                    <label>Stake</label>
+                    <input type="number" id="entryStake" placeholder="Amount" oninput="updateLivePreview()">
+                </div>
+            </div>
+            
+            <div class="live-preview" id="livePreviewBox">
+                <p><strong>Instant Preview:</strong></p>
+                <div class="preview-teams">
+                    <span id="previewTeam1">Team 1: 0</span>
+                    <span id="previewTeam2">Team 2: 0</span>
+                </div>
+            </div>
 
-<button onclick="add()">Add Entry</button>
+            <button id="addBetBtn" onclick="addBet()">Add Bet</button>
+        </section>
 
-<div class="box">
-<h3>Live Preview (Match Exposure)</h3>
-<div id="previewWin"></div>
-<div id="previewLose"></div>
-</div>
-
-<h3>Set Winner</h3>
-<select id="matchWinner"></select>
-<select id="winner">
-<option>Team A</option>
-<option>Team B</option>
-</select>
-<button onclick="setWinner()">Set Winner</button>
-
-<h3 id="total"></h3>
-
-<table>
-<tr>
-<th>#</th><th>Match</th><th>Fav</th><th>Action</th>
-<th>Rate</th><th>Stake</th>
-<th>Result</th><th>Net</th><th>Running</th>
-</tr>
-<tbody id="data"></tbody>
-</table>
-
-<script>
-let matches = ["Match 1","Match 2","Match 3"];
-let bets = JSON.parse(localStorage.getItem("bets_v3")||"[]");
-let winners = JSON.parse(localStorage.getItem("winners_v3")||"{}");
-
-function setup(){
-match.innerHTML=matches.map(m=>`<option>${m}</option>`).join("");
-matchWinner.innerHTML=match.innerHTML;
-}
-setup();
-
-function calcEntry(action,rate,stake){
-let r=rate/100;
-if(action=="Eat"){
-return {win:-stake*r,lose:stake};
-}else{
-return {win:stake*r,lose:-stake};
-}
-}
-
-function calcMatchPreview(){
-let m=match.value;
-let totalWin=0,totalLose=0;
-
-// previous entries
-bets.filter(b=>b.match==m).forEach(b=>{
-let c=calcEntry(b.action,b.rate,b.stake);
-totalWin+=c.win;
-totalLose+=c.lose;
-});
-
-// current input
-let r=+rate.value||0;
-let s=+stake.value||0;
-let c=calcEntry(action.value,r,s);
-
-totalWin+=c.win;
-totalLose+=c.lose;
-
-previewWin.innerText="If Favorite Wins → "+totalWin.toFixed(2);
-previewLose.innerText="If Favorite Loses → "+totalLose.toFixed(2);
-}
-
-function add(){
-bets.push({
-match:match.value,
-fav:fav.value,
-action:action.value,
-rate:+rate.value,
-stake:+stake.value
-});
-save();
-}
-
-function setWinner(){
-winners[matchWinner.value]=winner.value;
-save();
-}
-
-function calc(b){
-let w=winners[b.match];
-if(!w)return {res:"Pending",net:0};
-
-let favWin=b.fav==w;
-let c=calcEntry(b.action,b.rate,b.stake);
-
-return favWin?{res:"Win",net:c.win}:{res:"Lose",net:c.lose};
-}
-
-function save(){
-localStorage.setItem("bets_v3",JSON.stringify(bets));
-localStorage.setItem("winners_v3",JSON.stringify(winners));
-render();
-}
-
-function render(){
-let tb=data;
-tb.innerHTML="";
-let run=0;
-
-bets.forEach((b,i)=>{
-let c=calc(b);
-run+=c.net;
-
-tb.innerHTML+=`<tr>
-<td>${i+1}</td>
-<td>${b.match}</td>
-<td>${b.fav}</td>
-<td>${b.action}</td>
-<td>${b.rate}</td>
-<td>${b.stake}</td>
-<td>${c.res}</td>
-<td>${c.net.toFixed(2)}</td>
-<td>${run.toFixed(2)}</td>
-</tr>`;
-});
-
-total.innerText="Running Total: "+run.toFixed(2);
-}
-
-["match","fav","action","rate","stake"].forEach(id=>{
-document.getElementById(id).addEventListener("input",calcMatchPreview);
-});
-
-render();
-calcMatchPreview();
-</script>
-
+        <section class="table-section card">
+            <h3>3. Bet Ledger</h3>
+            <div class="table-wrapper">
+                <table id="betTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Team</th>
+                            <th>Action</th>
+                            <th>Rate</th>
+                            <th>Stake</th>
+                            <th>P/L if Fav Wins</th>
+                            <th>P/L if Fav Loses</th>
+                            <th>Final P/L</th>
+                        </tr>
+                    </thead>
+                    <tbody id="betTableBody">
+                        </tbody>
+                </table>
+            </div>
+            <div class="totals-bar">
+                <strong>Total Running Net Profit: </strong>
+                <span id="totalNetProfit" class="neutral">0</span>
+            </div>
+        </section>
+    </div>
+    <script src="app.js"></script>
 </body>
 </html>
