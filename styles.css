@@ -5,6 +5,7 @@
     --text-muted: #aaaaaa;
     --accent: #00e676;
     --danger: #ff5252;
+    --warning: #ffb300;
     --border: #333333;
 }
 
@@ -21,7 +22,7 @@ header h1 { text-align: center; margin: 15px 0; font-size: 1.5rem; color: var(--
 
 .input-group { display: flex; gap: 10px; align-items: center; }
 .input-group input, .input-group select { flex: 1; padding: 10px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-color); color: var(--text-main); }
-.mt-2 { margin-top: 10px; }
+.mt-2 { margin-top: 15px; }
 
 .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
 .field label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; }
@@ -29,15 +30,21 @@ header h1 { text-align: center; margin: 15px 0; font-size: 1.5rem; color: var(--
 
 .live-preview { background: var(--bg-color); padding: 10px; border-radius: 6px; border: 1px solid #444; margin-bottom: 15px; }
 .live-preview p { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 5px; }
-.preview-teams { display: flex; justify-content: space-between; font-weight: bold; }
+.preview-teams { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1rem; }
 
 button { width: 100%; padding: 12px; background-color: var(--accent); color: #000; border: none; border-radius: 4px; font-weight: bold; font-size: 1rem; cursor: pointer; }
 button:active { opacity: 0.8; }
 
+.btn-danger { background-color: var(--danger); color: white; }
+.btn-warning { background-color: var(--warning); color: black; }
+
 .table-wrapper { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; min-width: 600px; }
+table { width: 100%; border-collapse: collapse; min-width: 700px; }
 th, td { padding: 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
 th { background-color: #2a2a2a; color: var(--text-muted); }
+
+.action-btns { display: flex; gap: 5px; }
+.action-btns button { padding: 6px 8px; font-size: 0.8rem; width: auto; flex: 1; }
 
 .totals-bar { margin-top: 15px; text-align: right; font-size: 1.2rem; padding-top: 10px; border-top: 2px solid var(--border); }
 
