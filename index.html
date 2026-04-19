@@ -10,14 +10,19 @@
 <body>
     <div class="app-container">
         <header>
-            <h1>Match Tracker</h1>
+            <h1>IPL Match Tracker</h1>
         </header>
 
         <section class="setup-section card">
             <h3>1. Match Setup</h3>
             <div class="input-group">
-                <input type="text" id="team1" placeholder="Team 1 Name (e.g., CSK)" oninput="updateTeamNames()">
-                <input type="text" id="team2" placeholder="Team 2 Name (e.g., MI)" oninput="updateTeamNames()">
+                <select id="matchSelect" onchange="loadSelectedMatch()">
+                    <option value="">-- Select IPL Match --</option>
+                </select>
+            </div>
+            <div class="input-group mt-2" style="display:none;" id="customTeams">
+                <input type="text" id="team1" placeholder="Team 1 Name" oninput="updateTeamNames()">
+                <input type="text" id="team2" placeholder="Team 2 Name" oninput="updateTeamNames()">
             </div>
             <div class="input-group mt-2">
                 <label for="finalWinner">Final Match Winner:</label>
@@ -73,17 +78,17 @@
                             <th>Action</th>
                             <th>Rate</th>
                             <th>Stake</th>
-                            <th>P/L if Fav Wins</th>
-                            <th>P/L if Fav Loses</th>
+                            <th>P/L (Fav Wins)</th>
+                            <th>P/L (Fav Loses)</th>
                             <th>Final P/L</th>
                         </tr>
                     </thead>
                     <tbody id="betTableBody">
-                        </tbody>
+                    </tbody>
                 </table>
             </div>
             <div class="totals-bar">
-                <strong>Total Running Net Profit: </strong>
+                <strong>Total Net Profit: </strong>
                 <span id="totalNetProfit" class="neutral">0</span>
             </div>
         </section>
