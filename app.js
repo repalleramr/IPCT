@@ -44,6 +44,12 @@ function initMatchList() {
 }
 
 function loadSelectedMatch() {
+    if (bets.length > 0) {
+        if (confirm("You are selecting a new match. Do you want to clear your existing bets?")) {
+            bets = [];
+            document.getElementById('finalWinner').value = "";
+        }
+    }
     const val = document.getElementById('matchSelect').value;
     if (val) {
         const teamsPart = val.split(': ')[1];
@@ -55,12 +61,7 @@ function loadSelectedMatch() {
         team2Name = "Team 2";
     }
     updateDropdowns();
-}
-
-function updateTeamNames() {
-    team1Name = document.getElementById('team1').value || 'Team 1';
-    team2Name = document.getElementById('team2').value || 'Team 2';
-    updateDropdowns();
+    calculateTable();
 }
 
 function updateDropdowns() {
@@ -94,6 +95,21 @@ function calculatePreview(action, rate, stake) {
     return { favPL, oppPL };
 }
 
+// Calculate the base exposure from already saved bets
+function getBaseExposure() {
+    let t1Base = 0, t2Base = 0;
+    bets.forEach(b => {
+        if (b.team === team1Name) {
+            t1Base += b.favPL;
+            t2Base += b.oppPL;
+        } else {
+            t2Base += b.favPL;
+            t1Base += b.oppPL;
+        }
+    });
+    return { t1Base, t2Base };
+}
+
 function updateLivePreview() {
     const favTeam = document.getElementById('entryTeam').value;
     const action = document.getElementById('entryAction').value;
@@ -101,12 +117,18 @@ function updateLivePreview() {
     const stake = parseFloat(document.getElementById('entryStake').value) || 0;
 
     const { favPL, oppPL } = calculatePreview(action, rate, stake);
+    const { t1Base, t2Base } = getBaseExposure();
 
-    let t1Preview = 0, t2Preview = 0;
-    if (favTeam === team1Name) {
-        t1Preview = favPL; t2Preview = oppPL;
-    } else {
-        t2Preview = favPL; t1Preview = oppPL;
+    // Add Live preview to Base exposure
+    let t1Preview = t1Base;
+    let t2Preview = t2Base;
+
+    if (stake > 0 && rate > 0) {
+        if (favTeam === team1Name) {
+            t1Preview += favPL; t2Preview += oppPL;
+        } else {
+            t2Preview += favPL; t1Preview += oppPL;
+        }
     }
 
     const t1El = document.getElementById('previewTeam1');
@@ -131,12 +153,42 @@ function addBet() {
     }
 
     const { favPL, oppPL } = calculatePreview(action, rate, stake);
-    bets.push({ id: bets.length + 1, team, action, rate, stake, favPL, oppPL });
+    bets.push({ team, action, rate, stake, favPL, oppPL });
 
     document.getElementById('entryRate').value = '';
     document.getElementById('entryStake').value = '';
     updateLivePreview();
     calculateTable();
+}
+
+function editBet(index) {
+    const bet = bets[index];
+    document.getElementById('entryTeam').value = bet.team;
+    document.getElementById('entryAction').value = bet.action;
+    document.getElementById('entryRate').value = bet.rate;
+    document.getElementById('entryStake').value = bet.stake;
+    
+    // Remove the bet from array so it can be re-added
+    bets.splice(index, 1);
+    updateLivePreview();
+    calculateTable();
+}
+
+function deleteBet(index) {
+    if(confirm("Delete this bet?")) {
+        bets.splice(index, 1);
+        updateLivePreview();
+        calculateTable();
+    }
+}
+
+function clearBets() {
+    if(confirm("Are you sure you want to clear all bets and start a fresh match?")) {
+        bets = [];
+        document.getElementById('finalWinner').value = "";
+        updateLivePreview();
+        calculateTable();
+    }
 }
 
 function formatMoney(num) {
@@ -152,7 +204,7 @@ function calculateTable() {
     tbody.innerHTML = '';
     let runningTotal = 0;
 
-    bets.forEach(bet => {
+    bets.forEach((bet, index) => {
         let finalPL = 0;
         let isFinal = false;
 
@@ -168,7 +220,7 @@ function calculateTable() {
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${bet.id}</td>
+            <td>${index + 1}</td>
             <td>${bet.team}</td>
             <td>${bet.action}</td>
             <td>${bet.rate}</td>
@@ -176,6 +228,10 @@ function calculateTable() {
             <td>${formatMoney(bet.favPL)}</td>
             <td>${formatMoney(bet.oppPL)}</td>
             <td>${isFinal ? formatMoney(finalPL) : '-'}</td>
+            <td class="action-btns">
+                <button class="btn-warning" onclick="editBet(${index})">Edit</button>
+                <button class="btn-danger" onclick="deleteBet(${index})">Del</button>
+            </td>
         `;
         tbody.appendChild(tr);
     });
@@ -185,11 +241,8 @@ function calculateTable() {
 initMatchList();
 updateDropdowns();
 
-// --- SERVICE WORKER REGISTRATION ---
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker registered successfully!'))
-            .catch(err => console.error('Service Worker registration failed:', err));
+        navigator.serviceWorker.register('./sw.js').catch(err => console.error(err));
     });
 }
