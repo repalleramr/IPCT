@@ -3,154 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cricket Back/Lay Tracker</title>
-    <style>
-        /* NATIVE APP THEME - SPORTS/BETTING STYLE */
-        :root {
-            --app-bg: #0b0e14;         
-            --card-bg: #161b22;        
-            --primary: #00e676;        
-            --primary-dark: #00c853;
-            --text-main: #ffffff;
-            --text-muted: #8b949e;
-            --danger: #ff4444;         
-            --warning: #ffbb33;        
-            --info: #33b5e5;           
-            --border: #30363d;
-            --input-bg: #0d1117;
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-
-        body { background-color: var(--app-bg); color: var(--text-main); font-size: 15px; padding-top: 60px; padding-bottom: 30px; }
-
-        header { position: fixed; top: 0; left: 0; width: 100%; background-color: #161b22; height: 60px; display: flex; align-items: center; justify-content: center; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.5); border-bottom: 1px solid var(--border); }
-        header h1 { font-size: 1.25rem; color: var(--text-main); font-weight: 700; letter-spacing: 0.5px; }
-
-        .app-container { max-width: 600px; margin: 0 auto; padding: 10px 15px; }
-
-        .card { background-color: var(--card-bg); border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); border: 1px solid var(--border); }
-        .card h3 { margin-bottom: 15px; font-size: 1.1rem; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; display: flex; align-items: center; }
-
-        .input-group { display: flex; gap: 10px; align-items: center; }
-        .mt-2 { margin-top: 15px; }
-
-        input, select { width: 100%; padding: 0 15px; height: 50px; border-radius: 10px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size: 1rem; font-weight: 500; appearance: auto; -webkit-appearance: auto; -moz-appearance: auto; }
-        input:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(0, 230, 118, 0.2); }
-
-        .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-        .field label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px; font-weight: 600; text-transform: uppercase; }
-
-        .live-preview { background: linear-gradient(145deg, #1a231f 0%, #111a15 100%); padding: 20px; border-radius: 12px; border: 1px solid rgba(0, 230, 118, 0.3); margin-bottom: 20px; position: relative; overflow: hidden; }
-        .live-preview::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background-color: var(--primary); }
-        .live-preview p { font-size: 0.85rem; color: var(--primary); margin-bottom: 12px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
-        .preview-teams { display: flex; flex-direction: column; gap: 8px; font-weight: 700; font-size: 1.25rem; }
-
-        button { width: 100%; height: 54px; background-color: var(--primary); color: #000; border: none; border-radius: 12px; font-weight: 800; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; transition: transform 0.1s ease, background-color 0.2s ease; box-shadow: 0 4px 12px rgba(0, 230, 118, 0.3); }
-        button:active { transform: scale(0.96); background-color: var(--primary-dark); }
-
-        .bottom-actions { display: flex; gap: 12px; flex-direction: column; margin-top: 15px;}
-        @media (min-width: 600px) { .bottom-actions { flex-direction: row; } }
-
-        .btn-danger { background-color: var(--danger); color: white; box-shadow: 0 4px 12px rgba(255, 68, 68, 0.3); }
-        .btn-warning { background-color: var(--warning); color: black; box-shadow: 0 4px 12px rgba(255, 187, 51, 0.3); }
-        .btn-success { background-color: var(--info); color: white; box-shadow: 0 4px 12px rgba(51, 181, 229, 0.3); }
-
-        .table-wrapper { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); background: var(--input-bg); }
-        table { width: 100%; border-collapse: collapse; min-width: 800px; }
-        th, td { padding: 14px 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.95rem; white-space: nowrap; }
-        th { background-color: #1f252e; color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; }
-        tr:last-child td { border-bottom: none; }
-
-        .action-btns { display: flex; gap: 8px; }
-        .action-btns button { height: 36px; padding: 0 12px; font-size: 0.8rem; border-radius: 6px; box-shadow: none; }
-
-        .totals-bar { margin-top: 20px; display: flex; justify-content: space-between; align-items: center; background: var(--input-bg); padding: 15px 20px; border-radius: 12px; border: 1px solid var(--border); font-weight: 700; }
-        .totals-bar strong { font-size: 1rem; color: var(--text-muted); text-transform: uppercase; }
-        .totals-bar span { font-size: 1.4rem; }
-
-        .positive { color: var(--primary) !important; font-weight: 800; }
-        .negative { color: var(--danger) !important; font-weight: 800; }
-        .neutral { color: var(--text-main) !important; }
-    </style>
+    <title>MI6 Intelligence Log</title>
+    <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
 </head>
 <body>
     <div class="app-container">
         <header>
-            <h1>IPL Match Tracker</h1>
+            <h1>MI6 Classified Ledger</h1>
         </header>
 
         <section class="setup-section card">
-            <h3>1. Match Setup</h3>
+            <h3>1. Briefing Room</h3>
             <div class="input-group">
                 <select id="matchSelect" onchange="loadSelectedMatch()">
-                    <option value="">-- Select IPL Match --</option>
+                    <option value="">-- Select Active Mission --</option>
                 </select>
             </div>
-            <div class="input-group mt-2" style="display:none;" id="customTeams">
-                <input type="text" id="team1" placeholder="Team 1 Name" oninput="updateTeamNames()">
-                <input type="text" id="team2" placeholder="Team 2 Name" oninput="updateTeamNames()">
-            </div>
             <div class="input-group mt-2">
-                <label for="finalWinner">Final Match Winner:</label>
+                <label for="finalWinner">Asset Secured (Outcome):</label>
                 <select id="finalWinner" onchange="calculateTable()">
-                    <option value="">-- Select Winner Later --</option>
+                    <option value="">-- Pending Clearance --</option>
                 </select>
             </div>
         </section>
 
         <section class="entry-section card">
-            <h3>2. New Bet Entry</h3>
+            <h3>2. Field Operation</h3>
             
             <div class="live-preview" id="livePreviewBox">
-                <p>Overall Exposure (Past + New)</p>
+                <p><strong>Collateral Liability (Exposure):</strong></p>
                 <div class="preview-teams">
-                    <span id="previewTeam1">Team 1: 0</span>
-                    <span id="previewTeam2">Team 2: 0</span>
+                    <span id="previewTeam1">Target A: 0</span>
+                    <span id="previewTeam2">Target B: 0</span>
                 </div>
             </div>
 
             <div class="input-grid">
                 <div class="field">
-                    <label>Favorite Team</label>
+                    <label>Target Faction</label>
                     <select id="entryTeam" onchange="updateLivePreview()"></select>
                 </div>
                 <div class="field">
-                    <label>Action</label>
+                    <label>Tactic</label>
                     <select id="entryAction" onchange="updateLivePreview()">
-                        <option value="Play">Play (Back)</option>
-                        <option value="Eat">Eat (Lay)</option>
+                        <option value="Play">Infiltrate (Add)</option>
+                        <option value="Eat">Sabotage (Divert)</option>
                     </select>
                 </div>
                 <div class="field">
-                    <label>Rate (Paise)</label>
+                    <label>Intel Accuracy</label>
                     <input type="number" id="entryRate" placeholder="e.g. 91" oninput="updateLivePreview()">
                 </div>
                 <div class="field">
-                    <label>Stake</label>
+                    <label>Mission Funds</label>
                     <input type="number" id="entryStake" placeholder="Amount" oninput="updateLivePreview()">
                 </div>
             </div>
 
-            <button id="addBetBtn" onclick="addBet()">Add Bet</button>
+            <button id="addBetBtn" onclick="addBet()">Execute Directive</button>
         </section>
 
         <section class="table-section card">
-            <h3>3. Bet Ledger</h3>
+            <h3>3. Classified Ledger</h3>
             <div class="table-wrapper">
                 <table id="betTable">
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th>Team</th>
-                            <th>Action</th>
-                            <th>Rate</th>
-                            <th>Stake</th>
-                            <th>P/L (Fav Wins)</th>
-                            <th>P/L (Fav Loses)</th>
-                            <th>Final P/L</th>
-                            <th>Actions</th>
+                            <th>Faction</th>
+                            <th>Tactic</th>
+                            <th>Intel</th>
+                            <th>Funds</th>
+                            <th>Yield (Win)</th>
+                            <th>Yield (Loss)</th>
+                            <th>Final Result</th>
+                            <th>Clearance</th>
                         </tr>
                     </thead>
                     <tbody id="betTableBody">
@@ -158,13 +86,13 @@
                 </table>
             </div>
             <div class="totals-bar">
-                <strong>Total Net Profit: </strong>
+                <strong>Syndicate Balance: </strong>
                 <span id="totalNetProfit" class="neutral">0</span>
             </div>
             
             <div class="bottom-actions mt-2">
-                <button class="btn-success" onclick="saveAsCSV()">Export Bets to CSV</button>
-                <button class="btn-danger" onclick="clearBets()">Clear All & Start New</button>
+                <button class="btn-success" onclick="saveAsCSV()">Export Intel (CSV)</button>
+                <button class="btn-danger" onclick="clearBets()">Burn All Data</button>
             </div>
         </section>
     </div>
