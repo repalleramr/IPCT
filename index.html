@@ -57,14 +57,14 @@
             </div>
             
             <div class="live-preview" id="livePreviewBox">
-                <p><strong>Instant Preview:</strong></p>
+                <p><strong>Overall Exposure (Past Bets + New Bet):</strong></p>
                 <div class="preview-teams">
                     <span id="previewTeam1">Team 1: 0</span>
                     <span id="previewTeam2">Team 2: 0</span>
                 </div>
             </div>
 
-            <button id="addBetBtn" onclick="addBet()">Add Bet</button>
+            <button id="addBetBtn" onclick="addBet()">Add / Save Bet</button>
         </section>
 
         <section class="table-section card">
@@ -81,6 +81,7 @@
                             <th>P/L (Fav Wins)</th>
                             <th>P/L (Fav Loses)</th>
                             <th>Final P/L</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="betTableBody">
@@ -91,6 +92,8 @@
                 <strong>Total Net Profit: </strong>
                 <span id="totalNetProfit" class="neutral">0</span>
             </div>
+            
+            <button class="btn-danger mt-2" onclick="clearBets()">Clear All & Start New Match</button>
         </section>
     </div>
     <script src="app.js"></script>
