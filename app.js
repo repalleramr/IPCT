@@ -43,11 +43,27 @@ function initMatchList() {
     });
 }
 
+function saveState() {
+    const state = {
+        bets: bets,
+        match: document.getElementById('matchSelect').value,
+        t1: team1Name,
+        t2: team2Name,
+        winner: document.getElementById('finalWinner').value
+    };
+    localStorage.setItem('mi6_ledger_data', JSON.stringify(state));
+}
+
 function loadSelectedMatch() {
     if (bets.length > 0) {
         if (confirm("Initiate new mission? This will burn current logs.")) {
             bets = [];
             document.getElementById('finalWinner').value = "";
+        } else {
+            // Restore previous selection if they cancel
+            const saved = localStorage.getItem('mi6_ledger_data');
+            if(saved) document.getElementById('matchSelect').value = JSON.parse(saved).match || "";
+            return;
         }
     }
     const val = document.getElementById('matchSelect').value;
@@ -284,11 +300,28 @@ function calculateTable() {
         tbody.appendChild(tr);
     });
     document.getElementById('totalNetProfit').innerHTML = formatMoney(runningTotal);
+    
+    // Save to device storage every time the table updates
+    saveState();
 }
 
+// Initialization and Local Storage Retrieval
 initMatchList();
-updateDropdowns();
+const savedData = localStorage.getItem('mi6_ledger_data');
+if (savedData) {
+    const state = JSON.parse(savedData);
+    bets = state.bets || [];
+    team1Name = state.t1 || "Target A";
+    team2Name = state.t2 || "Target B";
+    document.getElementById('matchSelect').value = state.match || "";
+    updateDropdowns();
+    document.getElementById('finalWinner').value = state.winner || "";
+    calculateTable();
+} else {
+    updateDropdowns();
+}
 
+// Service Worker
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js').catch(err => console.error(err));
