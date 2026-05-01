@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nano Banana Generator</title>
+    <style>
+        body { 
+            background: #0b0e14; 
+            color: white; 
+            text-align: center; 
+            font-family: -apple-system, sans-serif; 
+            padding: 40px 20px; 
+        }
+        h2 { color: #00e676; letter-spacing: 1px; }
+        p { color: #8b949e; margin-bottom: 30px; }
+        
+        /* The canvas shows you what the icon looks like before downloading */
+        #iconCanvas { 
+            width: 200px; 
+            height: 200px; 
+            border-radius: 40px; 
+            box-shadow: 0 10px 30px rgba(0, 230, 118, 0.3); 
+            margin-bottom: 30px;
+        }
+
+        button { 
+            padding: 18px 30px; 
+            background: #00e676; 
+            color: #000;
+            border: none; 
+            border-radius: 12px; 
+            font-size: 1.1rem; 
+            font-weight: 800; 
+            cursor: pointer; 
+            box-shadow: 0 4px 15px rgba(0, 230, 118, 0.4);
+            transition: transform 0.1s;
+        }
+        button:active { transform: scale(0.95); }
+    </style>
+</head>
+<body>
+
+    <h2>MI6 Nano Banana</h2>
+    <p>High-Resolution 512x512 PWA Icon</p>
+    
+    <canvas id="iconCanvas" width="512" height="512"></canvas>
+    <br>
+    
+    <button onclick="downloadIcon()">Download icon.png</button>
+
+    <script>
+        const canvas = document.getElementById('iconCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 1. MI6 Dark Background
+        ctx.fillStyle = '#0b0e14';
+        ctx.fillRect(0, 0, 512, 512);
+
+        // 2. Neon Green Security Border
+        ctx.strokeStyle = '#00e676';
+        ctx.lineWidth = 20;
+        ctx.strokeRect(10, 10, 492, 492);
+
+        // 3. The "Nano Banana" Core Shape
+        ctx.fillStyle = '#00e676';
+        ctx.beginPath();
+        ctx.moveTo(370, 120);
+        ctx.bezierCurveTo(400, 260, 320, 410, 120, 420);
+        ctx.bezierCurveTo(220, 380, 290, 300, 310, 120);
+        ctx.closePath();
+        ctx.fill();
+
+        // 4. Cyber-Tech Cutouts (The "Nano" hardware dots)
+        ctx.fillStyle = '#0b0e14';
+        ctx.beginPath(); ctx.arc(260, 280, 22, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(210, 340, 16, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(310, 210, 14, 0, Math.PI*2); ctx.fill();
+
+        // 5. Glowing Cores inside the cutouts
+        ctx.fillStyle = '#00e676';
+        ctx.beginPath(); ctx.arc(260, 280, 8, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(210, 340, 6, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(310, 210, 5, 0, Math.PI*2); ctx.fill();
+
+        // Download Function
+        function downloadIcon() {
+            const link = document.createElement('a');
+            link.download = 'icon.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+    </script>
+</body>
+</html>
