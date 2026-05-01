@@ -1,6 +1,8 @@
 let bets = [];
+let fancyBets = []; // Array to hold Phase/Session bets
 let team1Name = "Target A";
 let team2Name = "Target B";
+let editingIndex = -1; 
 
 const iplMatches = [
     "Mission 1: Royal Challengers Bengaluru vs Sunrisers Hyderabad", "Mission 2: Mumbai Indians vs Kolkata Knight Riders",
@@ -33,6 +35,16 @@ const iplMatches = [
     "Mission 55: Punjab Kings vs Delhi Capitals", "Mission 56: Gujarat Titans vs Sunrisers Hyderabad"
 ];
 
+// --- TAB NAVIGATION LOGIC ---
+function switchTab(tabId) {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    
+    document.querySelector(`button[onclick="switchTab('${tabId}')"]`).classList.add('active');
+    document.getElementById(tabId + 'Tab').classList.add('active');
+}
+
+// --- INITIALIZATION & STORAGE ---
 function initMatchList() {
     const select = document.getElementById('matchSelect');
     iplMatches.forEach(match => {
@@ -46,6 +58,7 @@ function initMatchList() {
 function saveState() {
     const state = {
         bets: bets,
+        fancyBets: fancyBets,
         match: document.getElementById('matchSelect').value,
         t1: team1Name,
         t2: team2Name,
@@ -54,13 +67,17 @@ function saveState() {
     localStorage.setItem('mi6_ledger_data', JSON.stringify(state));
 }
 
+// --- CORE MISSION LOGIC (TAB 1) ---
 function loadSelectedMatch() {
-    if (bets.length > 0) {
-        if (confirm("Initiate new mission? This will burn current logs.")) {
+    if (bets.length > 0 || fancyBets.length > 0) {
+        if (confirm("Initiate new mission? This will burn current core AND phase logs.")) {
             bets = [];
+            fancyBets = [];
+            editingIndex = -1;
+            document.getElementById('addBetBtn').innerText = "Execute Directive";
             document.getElementById('finalWinner').value = "";
+            renderFancyTable();
         } else {
-            // Restore previous selection if they cancel
             const saved = localStorage.getItem('mi6_ledger_data');
             if(saved) document.getElementById('matchSelect').value = JSON.parse(saved).match || "";
             return;
@@ -113,7 +130,9 @@ function calculatePreview(action, rate, stake) {
 
 function getBaseExposure() {
     let t1Base = 0, t2Base = 0;
-    bets.forEach(b => {
+    bets.forEach((b, index) => {
+        if (index === editingIndex) return; 
+        
         if (b.team === team1Name) {
             t1Base += b.favPL;
             t2Base += b.oppPL;
@@ -167,7 +186,14 @@ function addBet() {
     }
 
     const { favPL, oppPL } = calculatePreview(action, rate, stake);
-    bets.push({ team, action, rate, stake, favPL, oppPL });
+    
+    if (editingIndex !== -1) {
+        bets[editingIndex] = { team, action, rate, stake, favPL, oppPL };
+        editingIndex = -1; 
+        document.getElementById('addBetBtn').innerText = "Execute Directive"; 
+    } else {
+        bets.push({ team, action, rate, stake, favPL, oppPL });
+    }
 
     document.getElementById('entryRate').value = '';
     document.getElementById('entryStake').value = '';
@@ -182,76 +208,36 @@ function editBet(index) {
     document.getElementById('entryRate').value = bet.rate;
     document.getElementById('entryStake').value = bet.stake;
     
-    bets.splice(index, 1);
+    editingIndex = index;
+    document.getElementById('addBetBtn').innerText = "Update Directive";
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     updateLivePreview();
-    calculateTable();
 }
 
 function deleteBet(index) {
     if(confirm("Scrub this entry from the ledger?")) {
         bets.splice(index, 1);
+        if (editingIndex === index) {
+            editingIndex = -1;
+            document.getElementById('addBetBtn').innerText = "Execute Directive";
+            document.getElementById('entryRate').value = '';
+            document.getElementById('entryStake').value = '';
+        } else if (editingIndex > index) {
+            editingIndex--;
+        }
         updateLivePreview();
         calculateTable();
     }
 }
 
 function clearBets() {
-    if(confirm("Confirm Protocol Zero: Burn all data for this mission?")) {
+    if(confirm("Confirm Protocol Zero: Burn all CORE data for this mission?")) {
         bets = [];
+        editingIndex = -1;
+        document.getElementById('addBetBtn').innerText = "Execute Directive";
         document.getElementById('finalWinner').value = "";
         updateLivePreview();
         calculateTable();
-    }
-}
-
-async function saveAsCSV() {
-    if (bets.length === 0) {
-        alert("No intel to export!");
-        return;
-    }
-
-    const matchName = document.getElementById('matchSelect').value || "Classified Mission";
-    const finalWinner = document.getElementById('finalWinner').value;
-
-    let csvContent = `Mission,${matchName}\n`;
-    csvContent += `Asset Secured,${finalWinner || 'Pending Clearance'}\n\n`;
-    csvContent += "Log #,Faction,Tactic,Intel,Funds,Yield A,Yield B,Final Result\n";
-
-    bets.forEach((bet, index) => {
-        let finalPL = 0;
-        let isFinal = false;
-        if (finalWinner) {
-            isFinal = true;
-            if (finalWinner === bet.team) {
-                finalPL = bet.favPL;
-            } else {
-                finalPL = bet.oppPL;
-            }
-        }
-        csvContent += `${index + 1},${bet.team},${bet.action},${bet.rate},${bet.stake},${bet.favPL},${bet.oppPL},${isFinal ? finalPL : '-'}\n`;
-    });
-
-    try {
-        if (window.showSaveFilePicker) {
-            const handle = await window.showSaveFilePicker({
-                suggestedName: 'mi6_intel_export.csv',
-                types: [{ description: 'CSV File', accept: { 'text/csv': ['.csv'] } }],
-            });
-            const writable = await handle.createWritable();
-            await writable.write(csvContent);
-            await writable.close();
-        } else {
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.setAttribute("href", url);
-            link.setAttribute("download", "mi6_intel_export.csv");
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-    } catch (err) {
-        console.log("Export aborted.", err);
     }
 }
 
@@ -283,6 +269,11 @@ function calculateTable() {
         }
 
         const tr = document.createElement('tr');
+        if (index === editingIndex) {
+            tr.style.backgroundColor = "rgba(255, 187, 51, 0.1)";
+            tr.style.borderLeft = "4px solid var(--warning)";
+        }
+
         tr.innerHTML = `
             <td>${index + 1}</td>
             <td>${bet.team}</td>
@@ -300,28 +291,190 @@ function calculateTable() {
         tbody.appendChild(tr);
     });
     document.getElementById('totalNetProfit').innerHTML = formatMoney(runningTotal);
-    
-    // Save to device storage every time the table updates
     saveState();
 }
 
-// Initialization and Local Storage Retrieval
+// --- PHASE OBJECTIVES (FANCY SESSIONS) LOGIC (TAB 2) ---
+
+function addFancyBet() {
+    const phase = document.getElementById('fancyPhase').value;
+    const action = document.getElementById('fancyAction').value;
+    const line = parseFloat(document.getElementById('fancyLine').value);
+    const stake = parseFloat(document.getElementById('fancyStake').value);
+
+    if(!phase || isNaN(line) || isNaN(stake)) {
+        alert("Mission Control: Phase parameters incomplete.");
+        return;
+    }
+
+    // Default status is 'Pending'. Pnl is 0 until settled.
+    fancyBets.push({ phase, action, line, stake, status: 'Pending', pnl: 0 });
+    
+    document.getElementById('fancyLine').value = '';
+    document.getElementById('fancyStake').value = '';
+    renderFancyTable();
+}
+
+function settleFancyBet(index) {
+    const bet = fancyBets[index];
+    const actualStr = prompt(`Enter ACTUAL runs scored for ${bet.phase} (Target Line was ${bet.line}):`);
+    
+    if(actualStr === null || actualStr.trim() === '') return; // User cancelled
+    
+    const actualScore = parseFloat(actualStr);
+    if(isNaN(actualScore)) { 
+        alert("Invalid Intel: Must be a number."); 
+        return; 
+    }
+
+    // 1:1 payout logic
+    // Action 'No' (Under): Win if Actual < Line. Lose if Actual >= Line.
+    // Action 'Yes' (Over): Win if Actual >= Line. Lose if Actual < Line.
+    
+    if (bet.action === "Yes") {
+        bet.pnl = (actualScore >= bet.line) ? bet.stake : -bet.stake;
+    } else {
+        bet.pnl = (actualScore < bet.line) ? bet.stake : -bet.stake;
+    }
+    
+    bet.status = "Resolved";
+    renderFancyTable();
+}
+
+function deleteFancyBet(index) {
+    if(confirm("Scrub this Phase from the ledger?")) {
+        fancyBets.splice(index, 1);
+        renderFancyTable();
+    }
+}
+
+function clearFancyBets() {
+    if(confirm("Confirm Protocol Zero: Burn all PHASE data?")) {
+        fancyBets = [];
+        renderFancyTable();
+    }
+}
+
+function renderFancyTable() {
+    const tbody = document.getElementById('fancyTableBody');
+    tbody.innerHTML = '';
+    let totalFancyPnl = 0;
+
+    fancyBets.forEach((bet, index) => {
+        if(bet.status === "Resolved") {
+            totalFancyPnl += bet.pnl;
+        }
+
+        const tr = document.createElement('tr');
+        
+        let pnlDisplay = '-';
+        if(bet.status === "Resolved") {
+            pnlDisplay = formatMoney(bet.pnl);
+        }
+
+        let actionHtml = '';
+        if(bet.status === "Pending") {
+            actionHtml = `<button class="btn-success" onclick="settleFancyBet(${index})">Resolve</button>
+                          <button class="btn-danger" style="margin-top: 5px;" onclick="deleteFancyBet(${index})">Burn</button>`;
+        } else {
+            actionHtml = `<button class="btn-danger" onclick="deleteFancyBet(${index})">Burn</button>`;
+        }
+
+        tr.innerHTML = `
+            <td>${bet.phase}</td>
+            <td>${bet.action}</td>
+            <td>${bet.line}</td>
+            <td>${bet.stake}</td>
+            <td style="color: ${bet.status === 'Resolved' ? 'var(--text-muted)' : 'var(--warning)'}; font-weight: bold;">${bet.status}</td>
+            <td>${pnlDisplay}</td>
+            <td class="action-btns" style="flex-direction: column;">${actionHtml}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    document.getElementById('fancyNetProfit').innerHTML = formatMoney(totalFancyPnl);
+    saveState();
+}
+
+// --- EXPORT LOGIC ---
+async function saveAsCSV() {
+    if (bets.length === 0 && fancyBets.length === 0) {
+        alert("No intel to export!");
+        return;
+    }
+
+    const matchName = document.getElementById('matchSelect').value || "Classified Mission";
+    const finalWinner = document.getElementById('finalWinner').value;
+
+    let csvContent = `Mission,${matchName}\n`;
+    csvContent += `Asset Secured,${finalWinner || 'Pending Clearance'}\n\n`;
+    
+    // Core Bets
+    csvContent += "--- CORE LEDGER ---\n";
+    csvContent += "Log #,Faction,Tactic,Intel,Funds,Yield A,Yield B,Final Result\n";
+    bets.forEach((bet, index) => {
+        let finalPL = 0;
+        let isFinal = false;
+        if (finalWinner) {
+            isFinal = true;
+            if (finalWinner === bet.team) {
+                finalPL = bet.favPL;
+            } else {
+                finalPL = bet.oppPL;
+            }
+        }
+        csvContent += `${index + 1},${bet.team},${bet.action},${bet.rate},${bet.stake},${bet.favPL},${bet.oppPL},${isFinal ? finalPL : '-'}\n`;
+    });
+
+    // Fancy Bets
+    csvContent += "\n--- PHASE OBJECTIVES (SESSIONS) ---\n";
+    csvContent += "Phase,Stance,Line,Funds,Status,Net Result\n";
+    fancyBets.forEach((bet) => {
+        csvContent += `${bet.phase},${bet.action},${bet.line},${bet.stake},${bet.status},${bet.status === 'Resolved' ? bet.pnl : '-'}\n`;
+    });
+
+    try {
+        if (window.showSaveFilePicker) {
+            const handle = await window.showSaveFilePicker({
+                suggestedName: 'mi6_intel_export.csv',
+                types: [{ description: 'CSV File', accept: { 'text/csv': ['.csv'] } }],
+            });
+            const writable = await handle.createWritable();
+            await writable.write(csvContent);
+            await writable.close();
+        } else {
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", "mi6_intel_export.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    } catch (err) {
+        console.log("Export aborted.", err);
+    }
+}
+
+// --- BOOTSTRAP ---
 initMatchList();
 const savedData = localStorage.getItem('mi6_ledger_data');
 if (savedData) {
     const state = JSON.parse(savedData);
     bets = state.bets || [];
+    fancyBets = state.fancyBets || [];
     team1Name = state.t1 || "Target A";
     team2Name = state.t2 || "Target B";
     document.getElementById('matchSelect').value = state.match || "";
     updateDropdowns();
     document.getElementById('finalWinner').value = state.winner || "";
     calculateTable();
+    renderFancyTable();
 } else {
     updateDropdowns();
 }
 
-// Service Worker
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js').catch(err => console.error(err));
