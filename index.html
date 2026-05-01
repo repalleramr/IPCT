@@ -198,6 +198,22 @@
                 <button onclick="addFancyBet()">Deploy Phase Tactic</button>
             </section>
 
+            <section class="card" style="border-color: var(--info);">
+                <h3 style="color: var(--info);">End of Phase Resolution</h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px;">Enter the final runs at the end of the session to instantly settle ALL pending bets for that timeframe.</p>
+                <div class="input-group">
+                    <select id="resolvePhase" style="flex: 1;">
+                        <option value="6 Overs">6 Overs</option>
+                        <option value="10 Overs">10 Overs</option>
+                        <option value="15 Overs">15 Overs</option>
+                        <option value="20 Overs">20 Overs</option>
+                        <option value="Custom">Custom Target</option>
+                    </select>
+                    <input type="number" id="resolveScore" placeholder="Final Runs" style="flex: 1;">
+                </div>
+                <button class="btn-success mt-2" onclick="resolvePhase()">Settle Entire Phase</button>
+            </section>
+
             <section class="table-section card">
                 <h3>Phase Ledger</h3>
                 <div class="table-wrapper">
