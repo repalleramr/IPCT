@@ -1,5 +1,5 @@
 let bets = [];
-let fancyBets = []; // Array to hold Phase/Session bets
+let fancyBets = []; 
 let team1Name = "Target A";
 let team2Name = "Target B";
 let editingIndex = -1; 
@@ -307,7 +307,6 @@ function addFancyBet() {
         return;
     }
 
-    // Default status is 'Pending'. Pnl is 0 until settled.
     fancyBets.push({ phase, action, line, stake, status: 'Pending', pnl: 0 });
     
     document.getElementById('fancyLine').value = '';
@@ -315,30 +314,39 @@ function addFancyBet() {
     renderFancyTable();
 }
 
-function settleFancyBet(index) {
-    const bet = fancyBets[index];
-    const actualStr = prompt(`Enter ACTUAL runs scored for ${bet.phase} (Target Line was ${bet.line}):`);
+// NEW: BULK SETTLEMENT LOGIC
+function resolvePhase() {
+    const phaseToResolve = document.getElementById('resolvePhase').value;
+    const actualStr = document.getElementById('resolveScore').value;
     
-    if(actualStr === null || actualStr.trim() === '') return; // User cancelled
+    if(!actualStr) {
+        alert("Mission Control: Please enter the final runs scored.");
+        return;
+    }
     
     const actualScore = parseFloat(actualStr);
-    if(isNaN(actualScore)) { 
-        alert("Invalid Intel: Must be a number."); 
-        return; 
-    }
+    let resolvedCount = 0;
 
-    // 1:1 payout logic
-    // Action 'No' (Under): Win if Actual < Line. Lose if Actual >= Line.
-    // Action 'Yes' (Over): Win if Actual >= Line. Lose if Actual < Line.
-    
-    if (bet.action === "Yes") {
-        bet.pnl = (actualScore >= bet.line) ? bet.stake : -bet.stake;
+    fancyBets.forEach(bet => {
+        if(bet.phase === phaseToResolve && bet.status === "Pending") {
+            if (bet.action === "Yes") {
+                // If Yes (Over), they win if actual >= line
+                bet.pnl = (actualScore >= bet.line) ? bet.stake : -bet.stake;
+            } else {
+                // If No (Under), they win if actual < line
+                bet.pnl = (actualScore < bet.line) ? bet.stake : -bet.stake;
+            }
+            bet.status = "Resolved";
+            resolvedCount++;
+        }
+    });
+
+    if(resolvedCount === 0) {
+        alert(`No pending tactics found for ${phaseToResolve}.`);
     } else {
-        bet.pnl = (actualScore < bet.line) ? bet.stake : -bet.stake;
+        document.getElementById('resolveScore').value = ''; // clear input
+        renderFancyTable();
     }
-    
-    bet.status = "Resolved";
-    renderFancyTable();
 }
 
 function deleteFancyBet(index) {
@@ -372,14 +380,6 @@ function renderFancyTable() {
             pnlDisplay = formatMoney(bet.pnl);
         }
 
-        let actionHtml = '';
-        if(bet.status === "Pending") {
-            actionHtml = `<button class="btn-success" onclick="settleFancyBet(${index})">Resolve</button>
-                          <button class="btn-danger" style="margin-top: 5px;" onclick="deleteFancyBet(${index})">Burn</button>`;
-        } else {
-            actionHtml = `<button class="btn-danger" onclick="deleteFancyBet(${index})">Burn</button>`;
-        }
-
         tr.innerHTML = `
             <td>${bet.phase}</td>
             <td>${bet.action}</td>
@@ -387,7 +387,9 @@ function renderFancyTable() {
             <td>${bet.stake}</td>
             <td style="color: ${bet.status === 'Resolved' ? 'var(--text-muted)' : 'var(--warning)'}; font-weight: bold;">${bet.status}</td>
             <td>${pnlDisplay}</td>
-            <td class="action-btns" style="flex-direction: column;">${actionHtml}</td>
+            <td class="action-btns">
+                <button class="btn-danger" onclick="deleteFancyBet(${index})">Burn</button>
+            </td>
         `;
         tbody.appendChild(tr);
     });
