@@ -4,21 +4,28 @@ let team1Name = "Target A";
 let team2Name = "Target B";
 let editingIndex = -1; 
 
-// UPDATED SCHEDULE: FROM MAY 11 TO FINAL
+// UPDATED SCHEDULE: LEAGUE TILL MAY 24, PLAYOFFS TBD
 const iplMatches = [
     "May 11: Punjab Kings vs Delhi Capitals",
     "May 12: Gujarat Titans vs Sunrisers Hyderabad",
-    "May 13: Punjab Kings vs Royal Challengers Bengaluru",
-    "May 14: Delhi Capitals vs Lucknow Super Giants",
-    "May 15: Rajasthan Royals vs Chennai Super Kings",
-    "May 16: Sunrisers Hyderabad vs Gujarat Titans",
-    "May 17: Mumbai Indians vs Lucknow Super Giants",
-    "May 17: Kolkata Knight Riders vs Mumbai Indians",
-    "May 18: Royal Challengers Bengaluru vs Chennai Super Kings",
-    "May 19 (Qualifier 1): TBD vs TBD",
-    "May 20 (Eliminator): TBD vs TBD",
-    "May 22 (Qualifier 2): TBD vs TBD",
-    "May 24 (Final): TBD vs TBD"
+    "May 13: Mumbai Indians vs Royal Challengers Bengaluru",
+    "May 14: Kolkata Knight Riders vs Chennai Super Kings",
+    "May 15: Lucknow Super Giants vs Rajasthan Royals",
+    "May 16: Delhi Capitals vs Gujarat Titans",
+    "May 17: Punjab Kings vs Sunrisers Hyderabad",
+    "May 17: Royal Challengers Bengaluru vs Kolkata Knight Riders",
+    "May 18: Chennai Super Kings vs Lucknow Super Giants",
+    "May 19: Mumbai Indians vs Rajasthan Royals",
+    "May 20: Delhi Capitals vs Royal Challengers Bengaluru",
+    "May 21: Kolkata Knight Riders vs Gujarat Titans",
+    "May 22: Sunrisers Hyderabad vs Chennai Super Kings",
+    "May 23: Rajasthan Royals vs Punjab Kings",
+    "May 24: Lucknow Super Giants vs Mumbai Indians",
+    "May 24: Gujarat Titans vs Royal Challengers Bengaluru",
+    "May 26 (Qualifier 1): TBD vs TBD",
+    "May 27 (Eliminator): TBD vs TBD",
+    "May 29 (Qualifier 2): TBD vs TBD",
+    "May 31 (Final): TBD vs TBD"
 ];
 
 // --- TAB NAVIGATION LOGIC ---
@@ -80,7 +87,6 @@ function loadSelectedMatch() {
         team2Name = "Target B";
     }
     
-    // Stop any running countdowns from a previous selection
     if(window.uplinkInterval) clearInterval(window.uplinkInterval);
     document.getElementById('liveScoreBox').innerHTML = "> AWAITING UPLINK INITIATION...";
     document.getElementById('aiPredictionBox').innerHTML = "> ORACLE ENGINE STANDBY...";
@@ -389,14 +395,15 @@ function renderFancyTable() {
 // --- TAB 3: LIVE SCORE & AI PREDICTION WITH COUNTDOWN ---
 
 function getMatchTime(matchStr) {
-    // Extracts "May 11" from strings like "May 19 (Qualifier 1): TBD"
+    // Extracts "May 11" from strings
     let datePart = matchStr.split(':')[0].split('(')[0].trim();
     
-    // Default match time is 7:30 PM IST (19:30:00)
+    // Default match time is 7:30 PM IST
     let targetDateStr = `${datePart}, 2026 19:30:00`;
     
     // Account for specific 3:30 PM Double Headers 
-    if (matchStr.includes("Mumbai Indians vs Lucknow Super Giants")) {
+    if (matchStr.includes("Punjab Kings vs Sunrisers Hyderabad") || 
+        matchStr.includes("Lucknow Super Giants vs Mumbai Indians")) {
         targetDateStr = `${datePart}, 2026 15:30:00`;
     }
     
@@ -413,7 +420,6 @@ function establishUplink() {
     const scoreBox = document.getElementById('liveScoreBox');
     const aiBox = document.getElementById('aiPredictionBox');
     
-    // Clear any existing timer
     if (window.uplinkInterval) clearInterval(window.uplinkInterval);
 
     const targetTime = getMatchTime(matchStr);
@@ -423,7 +429,6 @@ function establishUplink() {
         // MATCH IN THE FUTURE -> SHOW COUNTDOWN
         aiBox.innerHTML = "> ORACLE ENGINE STANDBY... AWAITING MISSION COMMENCEMENT.";
 
-        // Start checking every second
         window.uplinkInterval = setInterval(() => {
             const currentTime = new Date().getTime();
             const distance = targetTime.getTime() - currentTime;
@@ -458,15 +463,19 @@ function establishUplink() {
             const wkts = Math.floor(Math.random() * 8) + 1;
             const overs = (Math.floor(Math.random() * 6) + 14) + "." + Math.floor(Math.random() * 6);
             
+            // If teams are TBD, keep names generic
+            let displayT1 = team1Name === "TBD" ? "Target A" : team1Name;
+            let displayT2 = team2Name === "TBD" ? "Target B" : team2Name;
+
             scoreBox.innerHTML = `
                 <div style="color: #fff; font-size: 1.1rem; margin-bottom: 5px;">[LIVE TELEMETRY]</div>
-                <div style="color: var(--primary); font-size: 1.2rem; font-weight: bold;">${team1Name}: ${runs}/${wkts} <span style="font-size:0.9rem; color:var(--text-muted);">(${overs} ov)</span></div>
-                <div style="color: var(--warning); margin-top: 5px;">${team2Name}: Pending Deployment...</div>
+                <div style="color: var(--primary); font-size: 1.2rem; font-weight: bold;">${displayT1}: ${runs}/${wkts} <span style="font-size:0.9rem; color:var(--text-muted);">(${overs} ov)</span></div>
+                <div style="color: var(--warning); margin-top: 5px;">${displayT2}: Pending Deployment...</div>
             `;
 
             const probA = Math.floor(Math.random() * 40) + 30; 
             const probB = 100 - probA;
-            let favoredTeam = probA > probB ? team1Name : team2Name;
+            let favoredTeam = probA > probB ? displayT1 : displayT2;
             let confidence = Math.max(probA, probB);
 
             aiBox.innerHTML = `
@@ -522,15 +531,4 @@ async function saveAsCSV() {
                 suggestedName: 'mi6_intel_export.csv',
                 types: [{ description: 'CSV File', accept: { 'text/csv': ['.csv'] } }],
             });
-            const writable = await handle.createWritable();
-            await writable.write(csvContent);
-            await writable.close();
-        } else {
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.setAttribute("href", url);
-            link.setAttribute("download", "mi6_intel_export.csv");
-            document.body.appendChild(link);
-            link.click();
-          
+            const writable = await handle.
