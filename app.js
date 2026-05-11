@@ -3,28 +3,15 @@ console.log("MI6 System Booting on Android Chrome...");
 // --- SAFE STORAGE WRAPPER ---
 let isStorageSafe = false;
 let memoryStorage = {};
-
-try {
-    localStorage.setItem('__test_ping__', '1');
-    localStorage.removeItem('__test_ping__');
-    isStorageSafe = true;
-} catch (error) {
-    isStorageSafe = false;
-    console.log("Incognito Mode: Using temporary RAM.");
-}
+try { localStorage.setItem('__test_ping__', '1'); localStorage.removeItem('__test_ping__'); isStorageSafe = true; } 
+catch (error) { isStorageSafe = false; }
 
 function safeSet(key, value) {
-    if (isStorageSafe) {
-        try { localStorage.setItem(key, value); } catch(e){}
-    } else {
-        memoryStorage[key] = value;
-    }
+    if (isStorageSafe) { try { localStorage.setItem(key, value); } catch(e){} } 
+    else { memoryStorage[key] = value; }
 }
-
 function safeGet(key) {
-    if (isStorageSafe) {
-        try { return localStorage.getItem(key); } catch(e){ return null; }
-    }
+    if (isStorageSafe) { try { return localStorage.getItem(key); } catch(e){ return null; } }
     return memoryStorage[key] || null;
 }
 
@@ -35,8 +22,8 @@ let team1Name = "Target A";
 let team2Name = "Target B";
 let editingIndex = -1; 
 let uplinkInterval = null;
+let liveMatchEngine = null; // The background radar engine
 
-// UPDATED SCHEDULE: EXPLICIT TIMINGS INCLUDED
 const iplMatches = [
     "May 11 (7:30 PM): Punjab Kings vs Delhi Capitals",
     "May 12 (7:30 PM): Gujarat Titans vs Sunrisers Hyderabad",
@@ -119,7 +106,9 @@ function loadSelectedMatch() {
         team2Name = "Target B";
     }
     
+    // Shut off radar if they change matches
     if(uplinkInterval) clearInterval(uplinkInterval);
+    if(liveMatchEngine) clearInterval(liveMatchEngine);
     document.getElementById('liveScoreBox').innerHTML = "> AWAITING UPLINK INITIATION...";
     document.getElementById('aiPredictionBox').innerHTML = "> ORACLE ENGINE STANDBY...";
 
@@ -147,13 +136,8 @@ function updateDropdowns() {
 function calculatePreview(action, rate, stake) {
     let favPL = 0, oppPL = 0;
     if (!rate || !stake) return { favPL, oppPL };
-    if (action === 'Play') {
-        favPL = stake * (rate / 100);
-        oppPL = -stake;
-    } else if (action === 'Eat') {
-        favPL = -(stake * (rate / 100));
-        oppPL = stake;
-    }
+    if (action === 'Play') { favPL = stake * (rate / 100); oppPL = -stake; } 
+    else if (action === 'Eat') { favPL = -(stake * (rate / 100)); oppPL = stake; }
     return { favPL, oppPL };
 }
 
@@ -161,13 +145,8 @@ function getBaseExposure() {
     let t1Base = 0, t2Base = 0;
     bets.forEach((b, index) => {
         if (index === editingIndex) return; 
-        if (b.team === team1Name) {
-            t1Base += b.favPL;
-            t2Base += b.oppPL;
-        } else {
-            t2Base += b.favPL;
-            t1Base += b.oppPL;
-        }
+        if (b.team === team1Name) { t1Base += b.favPL; t2Base += b.oppPL; } 
+        else { t2Base += b.favPL; t1Base += b.oppPL; }
     });
     return { t1Base, t2Base };
 }
@@ -185,11 +164,8 @@ function updateLivePreview() {
     let t2Preview = t2Base;
 
     if (stake > 0 && rate > 0) {
-        if (favTeam === team1Name) {
-            t1Preview += favPL; t2Preview += oppPL;
-        } else {
-            t2Preview += favPL; t1Preview += oppPL;
-        }
+        if (favTeam === team1Name) { t1Preview += favPL; t2Preview += oppPL; } 
+        else { t2Preview += favPL; t1Preview += oppPL; }
     }
 
     const t1El = document.getElementById('previewTeam1');
@@ -197,7 +173,6 @@ function updateLivePreview() {
 
     t1El.innerText = `${team1Name}: ${t1Preview.toFixed(2)}`;
     t2El.innerText = `${team2Name}: ${t2Preview.toFixed(2)}`;
-
     t1El.className = t1Preview > 0 ? 'positive' : (t1Preview < 0 ? 'negative' : 'neutral');
     t2El.className = t2Preview > 0 ? 'positive' : (t2Preview < 0 ? 'negative' : 'neutral');
 }
@@ -208,11 +183,7 @@ function addBet() {
     const rate = parseFloat(document.getElementById('entryRate').value);
     const stake = parseFloat(document.getElementById('entryStake').value);
 
-    if (!team || isNaN(rate) || isNaN(stake)) {
-        alert("Mission Control: Required Intel Missing.");
-        return;
-    }
-
+    if (!team || isNaN(rate) || isNaN(stake)) { alert("Mission Control: Required Intel Missing."); return; }
     const { favPL, oppPL } = calculatePreview(action, rate, stake);
     
     if (editingIndex !== -1) {
@@ -235,7 +206,6 @@ function editBet(index) {
     document.getElementById('entryAction').value = bet.action;
     document.getElementById('entryRate').value = bet.rate;
     document.getElementById('entryStake').value = bet.stake;
-    
     editingIndex = index;
     document.getElementById('addBetBtn').innerText = "Update Directive";
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -250,9 +220,7 @@ function deleteBet(index) {
             document.getElementById('addBetBtn').innerText = "Execute Directive";
             document.getElementById('entryRate').value = '';
             document.getElementById('entryStake').value = '';
-        } else if (editingIndex > index) {
-            editingIndex--;
-        }
+        } else if (editingIndex > index) { editingIndex--; }
         updateLivePreview();
         calculateTable();
     }
@@ -285,14 +253,10 @@ function calculateTable() {
     bets.forEach((bet, index) => {
         let finalPL = 0;
         let isFinal = false;
-
         if (finalWinner) {
             isFinal = true;
-            if (finalWinner === bet.team) {
-                finalPL = bet.favPL;
-            } else {
-                finalPL = bet.oppPL;
-            }
+            if (finalWinner === bet.team) { finalPL = bet.favPL; } 
+            else { finalPL = bet.oppPL; }
             runningTotal += finalPL;
         }
 
@@ -322,19 +286,15 @@ function calculateTable() {
     saveState();
 }
 
+// --- FANCY TAB ---
 function addFancyBet() {
     const phase = document.getElementById('fancyPhase').value;
     const action = document.getElementById('fancyAction').value;
     const line = parseFloat(document.getElementById('fancyLine').value);
     const stake = parseFloat(document.getElementById('fancyStake').value);
 
-    if(!phase || isNaN(line) || isNaN(stake)) {
-        alert("Mission Control: Phase parameters incomplete.");
-        return;
-    }
-
+    if(!phase || isNaN(line) || isNaN(stake)) { alert("Mission Control: Phase parameters incomplete."); return; }
     fancyBets.push({ phase, action, line, stake, status: 'Pending', pnl: 0 });
-    
     document.getElementById('fancyLine').value = '';
     document.getElementById('fancyStake').value = '';
     renderFancyTable();
@@ -344,46 +304,28 @@ function resolvePhase() {
     const phaseToResolve = document.getElementById('resolvePhase').value;
     const actualStr = document.getElementById('resolveScore').value;
     
-    if(!actualStr) {
-        alert("Mission Control: Please enter the final runs scored.");
-        return;
-    }
-    
+    if(!actualStr) { alert("Mission Control: Please enter the final runs scored."); return; }
     const actualScore = parseFloat(actualStr);
     let resolvedCount = 0;
 
     fancyBets.forEach(bet => {
         if(bet.phase === phaseToResolve && bet.status === "Pending") {
-            if (bet.action === "Yes") {
-                bet.pnl = (actualScore >= bet.line) ? bet.stake : -bet.stake;
-            } else {
-                bet.pnl = (actualScore < bet.line) ? bet.stake : -bet.stake;
-            }
+            if (bet.action === "Yes") { bet.pnl = (actualScore >= bet.line) ? bet.stake : -bet.stake; } 
+            else { bet.pnl = (actualScore < bet.line) ? bet.stake : -bet.stake; }
             bet.status = "Resolved";
             resolvedCount++;
         }
     });
 
-    if(resolvedCount === 0) {
-        alert(`No pending tactics found for ${phaseToResolve}.`);
-    } else {
-        document.getElementById('resolveScore').value = ''; 
-        renderFancyTable();
-    }
+    if(resolvedCount === 0) { alert(`No pending tactics found for ${phaseToResolve}.`); } 
+    else { document.getElementById('resolveScore').value = ''; renderFancyTable(); }
 }
 
 function deleteFancyBet(index) {
-    if(confirm("Scrub this Phase from the ledger?")) {
-        fancyBets.splice(index, 1);
-        renderFancyTable();
-    }
+    if(confirm("Scrub this Phase from the ledger?")) { fancyBets.splice(index, 1); renderFancyTable(); }
 }
-
 function clearFancyBets() {
-    if(confirm("Confirm Protocol Zero: Burn all PHASE data?")) {
-        fancyBets = [];
-        renderFancyTable();
-    }
+    if(confirm("Confirm Protocol Zero: Burn all PHASE data?")) { fancyBets = []; renderFancyTable(); }
 }
 
 function renderFancyTable() {
@@ -392,15 +334,10 @@ function renderFancyTable() {
     let totalFancyPnl = 0;
 
     fancyBets.forEach((bet, index) => {
-        if(bet.status === "Resolved") {
-            totalFancyPnl += bet.pnl;
-        }
-
+        if(bet.status === "Resolved") { totalFancyPnl += bet.pnl; }
         const tr = document.createElement('tr');
         let pnlDisplay = '-';
-        if(bet.status === "Resolved") {
-            pnlDisplay = formatMoney(bet.pnl);
-        }
+        if(bet.status === "Resolved") { pnlDisplay = formatMoney(bet.pnl); }
 
         tr.innerHTML = `
             <td>${bet.phase}</td>
@@ -409,56 +346,42 @@ function renderFancyTable() {
             <td>${bet.stake}</td>
             <td style="color: ${bet.status === 'Resolved' ? 'var(--text-muted)' : 'var(--warning)'}; font-weight: bold;">${bet.status}</td>
             <td>${pnlDisplay}</td>
-            <td class="action-btns">
-                <button class="btn-danger" onclick="deleteFancyBet(${index})">Burn</button>
-            </td>
+            <td class="action-btns"><button class="btn-danger" onclick="deleteFancyBet(${index})">Burn</button></td>
         `;
         tbody.appendChild(tr);
     });
-
     document.getElementById('fancyNetProfit').innerHTML = formatMoney(totalFancyPnl);
     saveState();
 }
 
-// --- DYNAMIC TIME PARSER ---
+// --- TAB 3: LIVE SATELLITE ENGINE ---
 function getMatchTime(matchStr) {
     if (!matchStr) return new Date();
-    
-    // Example: "May 17 (3:30 PM): Punjab Kings vs Sunrisers Hyderabad"
-    const datePart = matchStr.split('(')[0].trim(); // "May 17"
-    const monthStr = datePart.split(' ')[0]; // "May"
-    const dayStr = datePart.split(' ')[1].padStart(2, '0'); // "17"
-    
+    const datePart = matchStr.split('(')[0].trim(); 
+    const monthStr = datePart.split(' ')[0]; 
+    const dayStr = datePart.split(' ')[1].padStart(2, '0'); 
     const monthMap = {"May": "05", "Jun": "06", "Apr": "04"};
     const month = monthMap[monthStr] || "05";
     
-    // Look for exact time in the string
-    let hh = "19"; // 7:00 PM
-    let mm = "30"; 
-    
-    if (matchStr.includes("3:30 PM")) {
-        hh = "15"; // 3:00 PM
-    }
-    
-    // ISO 8601 string - natively supported by Android Chrome V8
+    let hh = "19"; let mm = "30"; 
+    if (matchStr.includes("3:30 PM")) { hh = "15"; }
     return new Date(`2026-${month}-${dayStr}T${hh}:${mm}:00+05:30`);
 }
 
 function establishUplink() {
     const matchStr = document.getElementById('matchSelect').value;
-    if (!matchStr) {
-        alert("Mission Control: Please select an Active Mission first.");
-        return;
-    }
+    if (!matchStr) { alert("Mission Control: Please select an Active Mission first."); return; }
 
     const scoreBox = document.getElementById('liveScoreBox');
     const aiBox = document.getElementById('aiPredictionBox');
     
+    if (uplinkInterval) clearInterval(uplinkInterval);
+    if (liveMatchEngine) clearInterval(liveMatchEngine);
+
     const targetTime = getMatchTime(matchStr);
     const now = new Date();
 
     if (now < targetTime) {
-        // MATCH IS IN THE FUTURE -> DENY UPLINK
         let formatTime = targetTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
         scoreBox.innerHTML = `
             <div style="color: var(--warning); font-size: 1.1rem; margin-bottom: 5px;">[UPLINK DENIED]</div>
@@ -470,101 +393,104 @@ function establishUplink() {
         return;
     }
 
-    // MATCH HAS STARTED -> RUN SIMULATION WITH AI PHASE PREDICTIONS
+    // Initialize Simulation Data
     scoreBox.innerHTML = "> ESTABLISHING ENCRYPTED UPLINK... [||||      ]";
     aiBox.innerHTML = "> IGNITING QUANTUM ORACLE ENGINE... [||||      ]";
 
-    setTimeout(() => {
-        const overWhole = Math.floor(Math.random() * 18);
-        const overDec = Math.floor(Math.random() * 6);
-        const currentOvers = parseFloat(`${overWhole}.${overDec}`);
-        
-        const runs = Math.floor((currentOvers + 1) * (Math.random() * 3 + 7));
-        const wkts = Math.floor(Math.random() * 8) + 1;
-        const last10 = Math.floor(Math.random() * 15) + 5; 
-        
-        let displayT1 = team1Name === "TBD" ? "Target A" : team1Name;
-        let displayT2 = team2Name === "TBD" ? "Target B" : team2Name;
-
-        scoreBox.innerHTML = `
-            <div style="color: #fff; font-size: 1.1rem; margin-bottom: 5px;">[LIVE TELEMETRY]</div>
-            <div style="color: var(--primary); font-size: 1.2rem; font-weight: bold;">${displayT1}: ${runs}/${wkts} <span style="font-size:0.9rem; color:var(--text-muted);">(${currentOvers} ov)</span></div>
-            <div style="color: var(--warning); margin-top: 5px;">${displayT2}: Pending Deployment...</div>
-        `;
-
-        const probA = Math.floor(Math.random() * 40) + 30; 
-        const probB = 100 - probA;
-        let favoredTeam = probA > probB ? displayT1 : displayT2;
-        let confidence = Math.max(probA, probB);
-        
-        let projHTML = `<div style="margin-top:15px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.1);">
-            <div style="color:var(--text-muted); font-size:0.8rem; margin-bottom:8px;">PHASE PROJECTIONS (Last 10 Balls: ${last10} runs)</div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.9rem; color: #fff;">`;
-            
-        let rrMulti = last10 / 1.6; 
-
-        if (currentOvers < 6) projHTML += `<div>6 Ov: <span style="color:var(--primary); font-weight:bold;">${Math.floor(runs + (6-currentOvers)*rrMulti)}</span></div>`;
-        if (currentOvers < 10) projHTML += `<div>10 Ov: <span style="color:var(--primary); font-weight:bold;">${Math.floor(runs + (10-currentOvers)*rrMulti)}</span></div>`;
-        if (currentOvers < 15) projHTML += `<div>15 Ov: <span style="color:var(--primary); font-weight:bold;">${Math.floor(runs + (15-currentOvers)*rrMulti)}</span></div>`;
-        if (currentOvers < 20) projHTML += `<div>20 Ov: <span style="color:var(--primary); font-weight:bold;">${Math.floor(runs + (20-currentOvers)*rrMulti)}</span></div>`;
-        projHTML += `</div></div>`;
-
-        aiBox.innerHTML = `
-            <div style="color: #e1bee7; font-size: 1.1rem; margin-bottom: 5px;">[ORACLE PROJECTION]</div>
-            <div style="color: #fff;">Primary Target: <span style="color: var(--primary); font-weight: bold; font-size:1.2rem;">${favoredTeam}</span></div>
-            <div style="color: var(--info); margin-top: 5px;">Confidence Matrix: ${confidence}%</div>
-            ${projHTML}
-        `;
-    }, 1200);
-}
-
-async function saveAsCSV() {
-    if (bets.length === 0 && fancyBets.length === 0) {
-        alert("No intel to export!");
-        return;
-    }
-    const matchName = document.getElementById('matchSelect').value || "Classified Mission";
-    const finalWinner = document.getElementById('finalWinner').value;
-    let csvContent = `Mission,${matchName}\nAsset Secured,${finalWinner || 'Pending Clearance'}\n\n`;
+    let simRuns = Math.floor(Math.random() * 50) + 40;
+    let simWkts = Math.floor(Math.random() * 3);
+    let simBalls = Math.floor(Math.random() * 30) + 40; // Approx 7-8 overs
+    let recentBallsArray = ['1', '0', '4', '1', '2', '0']; // Starting form
     
-    csvContent += "--- CORE LEDGER ---\nLog #,Faction,Tactic,Intel,Funds,Yield A,Yield B,Final Result\n";
-    bets.forEach((bet, index) => {
-        let finalPL = 0;
-        let isFinal = false;
-        if (finalWinner) {
-            isFinal = true;
-            finalPL = (finalWinner === bet.team) ? bet.favPL : bet.oppPL;
-        }
-        csvContent += `${index + 1},${bet.team},${bet.action},${bet.rate},${bet.stake},${bet.favPL},${bet.oppPL},${isFinal ? finalPL : '-'}\n`;
-    });
+    const possibleOutcomes = ['0', '0', '1', '1', '1', '2', '4', '6', 'W'];
 
-    csvContent += "\n--- PHASE OBJECTIVES (SESSIONS) ---\nPhase,Stance,Line,Funds,Status,Net Result\n";
-    fancyBets.forEach((bet) => {
-        csvContent += `${bet.phase},${bet.action},${bet.line},${bet.stake},${bet.status},${bet.status === 'Resolved' ? bet.pnl : '-'}\n`;
-    });
+    setTimeout(() => {
+        // Start the Ball-By-Ball Interval
+        liveMatchEngine = setInterval(() => {
+            // Pick a random ball
+            let outcome = possibleOutcomes[Math.floor(Math.random() * possibleOutcomes.length)];
+            simBalls++;
+            
+            if (outcome === 'W') { simWkts++; } 
+            else { simRuns += parseInt(outcome); }
 
-    try {
-        if (window.showSaveFilePicker) {
-            const handle = await window.showSaveFilePicker({
-                suggestedName: 'mi6_intel_export.csv',
-                types: [{ description: 'CSV File', accept: { 'text/csv': ['.csv'] } }],
+            // Manage recent balls array
+            recentBallsArray.push(outcome);
+            if(recentBallsArray.length > 6) recentBallsArray.shift();
+
+            let overWhole = Math.floor(simBalls / 6);
+            let overDec = simBalls % 6;
+            let currentOvers = `${overWhole}.${overDec}`;
+
+            let displayT1 = team1Name === "TBD" ? "Target A" : team1Name;
+            let displayT2 = team2Name === "TBD" ? "Target B" : team2Name;
+
+            // Render Radar
+            let radarHTML = `
+                <div class="radar-box">
+                    <div class="radar-title">
+                        <span>Striker Intel</span>
+                        <span class="radar-status">● LIVE</span>
+                    </div>
+                    <div style="color:#fff; font-size:1.1rem;">Bowler: Hostile Agent</div>
+                    <div style="color:var(--text-muted); font-size:0.9rem; margin-bottom:10px;">To -> Asset Alpha</div>
+                    
+                    <div style="font-size:0.8rem; color:var(--text-muted);">RECENT ACTIVITY</div>
+                    <div class="ball-history">
+            `;
+            
+            // Render Ball history colors
+            recentBallsArray.forEach((ball, idx) => {
+                let cssClass = 'ball-marker ';
+                if(ball === '0') cssClass += 'ball-dot';
+                else if(ball === '4') cssClass += 'ball-four';
+                else if(ball === '6') cssClass += 'ball-six';
+                else if(ball === 'W') cssClass += 'ball-wicket';
+                else cssClass += 'ball-dot'; // standard
+
+                // Animate only the newest ball
+                let animClass = (idx === recentBallsArray.length - 1) ? 'ball-anim' : '';
+                radarHTML += `<div class="${cssClass} ${animClass}">${ball}</div>`;
             });
-            const writable = await handle.createWritable();
-            await writable.write(csvContent);
-            await writable.close();
-        } else {
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.setAttribute("href", url);
-            link.setAttribute("download", "mi6_intel_export.csv");
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-    } catch (err) {
-        console.log("Export aborted.", err);
-    }
+            radarHTML += `</div></div>`;
+
+            scoreBox.innerHTML = `
+                <div style="color: #fff; font-size: 1.1rem; margin-bottom: 5px;">[LIVE TELEMETRY]</div>
+                <div style="color: var(--primary); font-size: 1.2rem; font-weight: bold;">${displayT1}: ${simRuns}/${simWkts} <span style="font-size:0.9rem; color:var(--text-muted);">(${currentOvers} ov)</span></div>
+                <div style="color: var(--warning); margin-top: 5px;">${displayT2}: Pending Deployment...</div>
+                ${radarHTML}
+            `;
+
+            // UPDATE AI PROJECTIONS based on new simulated runs
+            const probA = Math.floor(Math.random() * 40) + 30; 
+            const probB = 100 - probA;
+            let favoredTeam = probA > probB ? displayT1 : displayT2;
+            let confidence = Math.max(probA, probB);
+            
+            let last10Runs = 0;
+            recentBallsArray.forEach(b => { if(b!=='W') last10Runs += parseInt(b); });
+            let rrMulti = last10Runs / 1.5; 
+
+            let projHTML = `<div style="margin-top:15px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.1);">
+                <div style="color:var(--text-muted); font-size:0.8rem; margin-bottom:8px;">PHASE PROJECTIONS (Calculating Form)</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.9rem; color: #fff;">`;
+                
+            let ov = parseFloat(currentOvers);
+            if (ov < 6) projHTML += `<div>6 Ov: <span style="color:var(--primary); font-weight:bold;">${Math.floor(simRuns + (6-ov)*rrMulti)}</span></div>`;
+            if (ov < 10) projHTML += `<div>10 Ov: <span style="color:var(--primary); font-weight:bold;">${Math.floor(simRuns + (10-ov)*rrMulti)}</span></div>`;
+            if (ov < 15) projHTML += `<div>15 Ov: <span style="color:var(--primary); font-weight:bold;">${Math.floor(simRuns + (15-ov)*rrMulti)}</span></div>`;
+            if (ov < 20) projHTML += `<div>20 Ov: <span style="color:var(--primary); font-weight:bold;">${Math.floor(simRuns + (20-ov)*rrMulti)}</span></div>`;
+            projHTML += `</div></div>`;
+
+            aiBox.innerHTML = `
+                <div style="color: #e1bee7; font-size: 1.1rem; margin-bottom: 5px;">[ORACLE PROJECTION]</div>
+                <div style="color: #fff;">Primary Target: <span style="color: var(--primary); font-weight: bold; font-size:1.2rem;">${favoredTeam}</span></div>
+                <div style="color: var(--info); margin-top: 5px;">Confidence Matrix: ${confidence}%</div>
+                ${projHTML}
+            `;
+
+        }, 4000); // Throws a new simulated ball every 4 seconds
+    }, 1000);
 }
 
 // --- BOOTSTRAP INIT ---
