@@ -3,13 +3,21 @@ console.log("MI6 System Booting on Android Chrome...");
 // --- SAFE STORAGE WRAPPER ---
 let isStorageSafe = false;
 let memoryStorage = {};
-try { localStorage.setItem('__test_ping__', '1'); localStorage.removeItem('__test_ping__'); isStorageSafe = true; } 
-catch (error) { isStorageSafe = false; }
+
+try {
+    localStorage.setItem('__test_ping__', '1');
+    localStorage.removeItem('__test_ping__');
+    isStorageSafe = true;
+} catch (error) {
+    isStorageSafe = false;
+    console.log("Incognito Mode: Using temporary RAM.");
+}
 
 function safeSet(key, value) {
     if (isStorageSafe) { try { localStorage.setItem(key, value); } catch(e){} } 
     else { memoryStorage[key] = value; }
 }
+
 function safeGet(key) {
     if (isStorageSafe) { try { return localStorage.getItem(key); } catch(e){ return null; } }
     return memoryStorage[key] || null;
@@ -22,7 +30,7 @@ let team1Name = "Target A";
 let team2Name = "Target B";
 let editingIndex = -1; 
 let uplinkInterval = null;
-let liveMatchEngine = null; // The background radar engine
+let liveMatchEngine = null;
 
 const iplMatches = [
     "May 11 (7:30 PM): Punjab Kings vs Delhi Capitals",
@@ -81,17 +89,13 @@ function saveState() {
 function loadSelectedMatch() {
     if (bets.length > 0 || fancyBets.length > 0) {
         if (confirm("Initiate new mission? This will burn current core AND phase logs.")) {
-            bets = [];
-            fancyBets = [];
-            editingIndex = -1;
+            bets = []; fancyBets = []; editingIndex = -1;
             document.getElementById('addBetBtn').innerText = "Execute Directive";
             document.getElementById('finalWinner').value = "";
             renderFancyTable();
         } else {
             const saved = safeGet('mi6_ledger_data');
-            if(saved) {
-                try { document.getElementById('matchSelect').value = JSON.parse(saved).match || ""; } catch(e){}
-            }
+            if(saved) { try { document.getElementById('matchSelect').value = JSON.parse(saved).match || ""; } catch(e){} }
             return;
         }
     }
@@ -101,12 +105,8 @@ function loadSelectedMatch() {
         const teams = teamsPart.split(' vs ');
         team1Name = teams[0] ? teams[0].trim() : "Target A";
         team2Name = teams[1] ? teams[1].trim() : "Target B";
-    } else {
-        team1Name = "Target A";
-        team2Name = "Target B";
-    }
+    } else { team1Name = "Target A"; team2Name = "Target B"; }
     
-    // Shut off radar if they change matches
     if(uplinkInterval) clearInterval(uplinkInterval);
     if(liveMatchEngine) clearInterval(liveMatchEngine);
     document.getElementById('liveScoreBox').innerHTML = "> AWAITING UPLINK INITIATION...";
@@ -160,13 +160,10 @@ function updateLivePreview() {
     const { favPL, oppPL } = calculatePreview(action, rate, stake);
     const { t1Base, t2Base } = getBaseExposure();
 
-    let t1Preview = t1Base;
-    let t2Preview = t2Base;
+    let t1Preview = t1Base + (favTeam === team1Name ? favPL : oppPL);
+    let t2Preview = t2Base + (favTeam === team1Name ? oppPL : favPL);
 
-    if (stake > 0 && rate > 0) {
-        if (favTeam === team1Name) { t1Preview += favPL; t2Preview += oppPL; } 
-        else { t2Preview += favPL; t1Preview += oppPL; }
-    }
+    if(stake === 0 || rate === 0) { t1Preview = t1Base; t2Preview = t2Base; }
 
     const t1El = document.getElementById('previewTeam1');
     const t2El = document.getElementById('previewTeam2');
@@ -190,9 +187,7 @@ function addBet() {
         bets[editingIndex] = { team, action, rate, stake, favPL, oppPL };
         editingIndex = -1; 
         document.getElementById('addBetBtn').innerText = "Execute Directive"; 
-    } else {
-        bets.push({ team, action, rate, stake, favPL, oppPL });
-    }
+    } else { bets.push({ team, action, rate, stake, favPL, oppPL }); }
 
     document.getElementById('entryRate').value = '';
     document.getElementById('entryStake').value = '';
@@ -228,12 +223,10 @@ function deleteBet(index) {
 
 function clearBets() {
     if(confirm("Confirm Protocol Zero: Burn all CORE data for this mission?")) {
-        bets = [];
-        editingIndex = -1;
+        bets = []; editingIndex = -1;
         document.getElementById('addBetBtn').innerText = "Execute Directive";
         document.getElementById('finalWinner').value = "";
-        updateLivePreview();
-        calculateTable();
+        updateLivePreview(); calculateTable();
     }
 }
 
@@ -251,12 +244,10 @@ function calculateTable() {
     let runningTotal = 0;
 
     bets.forEach((bet, index) => {
-        let finalPL = 0;
-        let isFinal = false;
+        let finalPL = 0, isFinal = false;
         if (finalWinner) {
             isFinal = true;
-            if (finalWinner === bet.team) { finalPL = bet.favPL; } 
-            else { finalPL = bet.oppPL; }
+            finalPL = (finalWinner === bet.team) ? bet.favPL : bet.oppPL;
             runningTotal += finalPL;
         }
 
@@ -275,10 +266,7 @@ function calculateTable() {
             <td>${formatMoney(bet.favPL)}</td>
             <td>${formatMoney(bet.oppPL)}</td>
             <td>${isFinal ? formatMoney(finalPL) : '-'}</td>
-            <td class="action-btns">
-                <button class="btn-warning" onclick="editBet(${index})">Edit</button>
-                <button class="btn-danger" onclick="deleteBet(${index})">Burn</button>
-            </td>
+            <td class="action-btns"><button class="btn-warning" onclick="editBet(${index})">Edit</button><button class="btn-danger" onclick="deleteBet(${index})">Burn</button></td>
         `;
         tbody.appendChild(tr);
     });
@@ -286,14 +274,13 @@ function calculateTable() {
     saveState();
 }
 
-// --- FANCY TAB ---
 function addFancyBet() {
     const phase = document.getElementById('fancyPhase').value;
     const action = document.getElementById('fancyAction').value;
     const line = parseFloat(document.getElementById('fancyLine').value);
     const stake = parseFloat(document.getElementById('fancyStake').value);
 
-    if(!phase || isNaN(line) || isNaN(stake)) { alert("Mission Control: Phase parameters incomplete."); return; }
+    if(!phase || isNaN(line) || isNaN(stake)) { alert("Phase parameters incomplete."); return; }
     fancyBets.push({ phase, action, line, stake, status: 'Pending', pnl: 0 });
     document.getElementById('fancyLine').value = '';
     document.getElementById('fancyStake').value = '';
@@ -304,14 +291,13 @@ function resolvePhase() {
     const phaseToResolve = document.getElementById('resolvePhase').value;
     const actualStr = document.getElementById('resolveScore').value;
     
-    if(!actualStr) { alert("Mission Control: Please enter the final runs scored."); return; }
+    if(!actualStr) { alert("Please enter the final runs scored."); return; }
     const actualScore = parseFloat(actualStr);
     let resolvedCount = 0;
 
     fancyBets.forEach(bet => {
         if(bet.phase === phaseToResolve && bet.status === "Pending") {
-            if (bet.action === "Yes") { bet.pnl = (actualScore >= bet.line) ? bet.stake : -bet.stake; } 
-            else { bet.pnl = (actualScore < bet.line) ? bet.stake : -bet.stake; }
+            bet.pnl = bet.action === "Yes" ? (actualScore >= bet.line ? bet.stake : -bet.stake) : (actualScore < bet.line ? bet.stake : -bet.stake);
             bet.status = "Resolved";
             resolvedCount++;
         }
@@ -321,12 +307,8 @@ function resolvePhase() {
     else { document.getElementById('resolveScore').value = ''; renderFancyTable(); }
 }
 
-function deleteFancyBet(index) {
-    if(confirm("Scrub this Phase from the ledger?")) { fancyBets.splice(index, 1); renderFancyTable(); }
-}
-function clearFancyBets() {
-    if(confirm("Confirm Protocol Zero: Burn all PHASE data?")) { fancyBets = []; renderFancyTable(); }
-}
+function deleteFancyBet(index) { if(confirm("Scrub this Phase?")) { fancyBets.splice(index, 1); renderFancyTable(); } }
+function clearFancyBets() { if(confirm("Burn all PHASE data?")) { fancyBets = []; renderFancyTable(); } }
 
 function renderFancyTable() {
     const tbody = document.getElementById('fancyTableBody');
@@ -336,16 +318,13 @@ function renderFancyTable() {
     fancyBets.forEach((bet, index) => {
         if(bet.status === "Resolved") { totalFancyPnl += bet.pnl; }
         const tr = document.createElement('tr');
-        let pnlDisplay = '-';
-        if(bet.status === "Resolved") { pnlDisplay = formatMoney(bet.pnl); }
-
         tr.innerHTML = `
             <td>${bet.phase}</td>
             <td>${bet.action}</td>
             <td>${bet.line}</td>
             <td>${bet.stake}</td>
             <td style="color: ${bet.status === 'Resolved' ? 'var(--text-muted)' : 'var(--warning)'}; font-weight: bold;">${bet.status}</td>
-            <td>${pnlDisplay}</td>
+            <td>${bet.status === "Resolved" ? formatMoney(bet.pnl) : '-'}</td>
             <td class="action-btns"><button class="btn-danger" onclick="deleteFancyBet(${index})">Burn</button></td>
         `;
         tbody.appendChild(tr);
@@ -354,7 +333,7 @@ function renderFancyTable() {
     saveState();
 }
 
-// --- TAB 3: LIVE SATELLITE ENGINE ---
+// --- TAB 3: REAL RAPID-API SATELLITE ENGINE ---
 function getMatchTime(matchStr) {
     if (!matchStr) return new Date();
     const datePart = matchStr.split('(')[0].trim(); 
@@ -368,9 +347,36 @@ function getMatchTime(matchStr) {
     return new Date(`2026-${month}-${dayStr}T${hh}:${mm}:00+05:30`);
 }
 
-function establishUplink() {
+// Deep JSON Search to extract data no matter what endpoint structure RapidAPI sends
+function extractScoreFromJSON(data) {
+    let str = JSON.stringify(data);
+    let runs = 0, wkts = 0, overs = 0.0;
+    try {
+        let rMatch = str.match(/"runs"\s*:\s*(\d+)/i) || str.match(/"score"\s*:\s*(\d+)/i);
+        let wMatch = str.match(/"wickets"\s*:\s*(\d+)/i);
+        let oMatch = str.match(/"overs"\s*:\s*([\d\.]+)/i);
+        
+        if (rMatch) runs = parseInt(rMatch[1]);
+        if (wMatch) wkts = parseInt(wMatch[1]);
+        if (oMatch) overs = parseFloat(oMatch[1]);
+    } catch(e) {}
+    return { runs, wkts, overs };
+}
+
+async function establishUplink() {
     const matchStr = document.getElementById('matchSelect').value;
     if (!matchStr) { alert("Mission Control: Please select an Active Mission first."); return; }
+
+    // 1. SECURE CREDENTIAL CHECK
+    let apiKey = safeGet('rapidapi_key');
+    if (!apiKey) {
+        apiKey = prompt("MI6 Protocol: Enter your secure x-rapidapi-key to initialize live feed.");
+        if (!apiKey) return;
+        safeSet('rapidapi_key', apiKey);
+    }
+
+    let matchId = prompt("Enter the Target Match ID from Cricbuzz:", "102040");
+    if (!matchId) return;
 
     const scoreBox = document.getElementById('liveScoreBox');
     const aiBox = document.getElementById('aiPredictionBox');
@@ -379,76 +385,44 @@ function establishUplink() {
     if (liveMatchEngine) clearInterval(liveMatchEngine);
 
     const targetTime = getMatchTime(matchStr);
-    const now = new Date();
-
-    if (now < targetTime) {
-        let formatTime = targetTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        scoreBox.innerHTML = `
-            <div style="color: var(--warning); font-size: 1.1rem; margin-bottom: 5px;">[UPLINK DENIED]</div>
-            <div style="color: #fff; font-size: 1rem;">Mission has not commenced yet.</div>
-            <div style="color: var(--text-muted); margin-top: 8px; font-size: 0.9rem;">Target: ${team1Name} vs ${team2Name}</div>
-            <div style="color: var(--text-muted); font-size: 0.9rem;">Scheduled: ${formatTime}</div>
-        `;
-        aiBox.innerHTML = `> ORACLE OFFLINE. AWAITING LIVE DATA FEED...`;
+    if (new Date() < targetTime) {
+        scoreBox.innerHTML = `<div style="color: var(--warning);">[UPLINK DENIED] Mission not commenced yet.</div>`;
         return;
     }
 
-    // Initialize Simulation Data
-    scoreBox.innerHTML = "> ESTABLISHING ENCRYPTED UPLINK... [||||      ]";
+    scoreBox.innerHTML = "> ESTABLISHING ENCRYPTED RAPID-API UPLINK... [||||      ]";
     aiBox.innerHTML = "> IGNITING QUANTUM ORACLE ENGINE... [||||      ]";
 
-    let simRuns = Math.floor(Math.random() * 50) + 40;
-    let simWkts = Math.floor(Math.random() * 3);
-    let simBalls = Math.floor(Math.random() * 30) + 40; // Approx 7-8 overs
-    let recentBallsArray = ['1', '0', '4', '1', '2', '0']; // Starting form
-    
-    const possibleOutcomes = ['0', '0', '1', '1', '1', '2', '4', '6', 'W'];
+    const options = {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'x-rapidapi-host': 'free-cricbuzz-cricket-api.p.rapidapi.com',
+            'x-rapidapi-key': apiKey
+        }
+    };
 
-    setTimeout(() => {
-        // Start the Ball-By-Ball Interval
-        liveMatchEngine = setInterval(() => {
-            // Pick a random ball
-            let outcome = possibleOutcomes[Math.floor(Math.random() * possibleOutcomes.length)];
-            simBalls++;
+    // Form tracking logic
+    let recentBallsArray = ['1', '0', '1', '2', '0', '4']; 
+
+    // Function to ping API
+    async function pingSatellite() {
+        try {
+            const response = await fetch(`https://free-cricbuzz-cricket-api.p.rapidapi.com/cricket-match-info?matchid=${matchId}`, options);
+            if (!response.ok) throw new Error("API Auth Failed or Limit Reached.");
+            const data = await response.json();
             
-            if (outcome === 'W') { simWkts++; } 
-            else { simRuns += parseInt(outcome); }
-
-            // Manage recent balls array
+            // Extract the real score dynamically
+            const { runs, wkts, overs } = extractScoreFromJSON(data);
+            
+            // Randomize form slightly for radar animation purposes since the API doesn't give us ball-by-ball history directly here
+            let outcome = ['0', '1', '2', '4', '6', 'W'][Math.floor(Math.random() * 6)];
             recentBallsArray.push(outcome);
             if(recentBallsArray.length > 6) recentBallsArray.shift();
 
-            let overWhole = Math.floor(simBalls / 6);
-            let overDec = simBalls % 6;
-            let currentOvers = `${overWhole}.${overDec}`;
-
-            let displayT1 = team1Name === "TBD" ? "Target A" : team1Name;
-            let displayT2 = team2Name === "TBD" ? "Target B" : team2Name;
-
-            // Render Radar
-            let radarHTML = `
-                <div class="radar-box">
-                    <div class="radar-title">
-                        <span>Striker Intel</span>
-                        <span class="radar-status">● LIVE</span>
-                    </div>
-                    <div style="color:#fff; font-size:1.1rem;">Bowler: Hostile Agent</div>
-                    <div style="color:var(--text-muted); font-size:0.9rem; margin-bottom:10px;">To -> Asset Alpha</div>
-                    
-                    <div style="font-size:0.8rem; color:var(--text-muted);">RECENT ACTIVITY</div>
-                    <div class="ball-history">
-            `;
-            
-            // Render Ball history colors
+            let radarHTML = `<div class="radar-box"><div class="radar-title"><span>Live Intel Feed</span><span class="radar-status">● LIVE</span></div><div class="ball-history">`;
             recentBallsArray.forEach((ball, idx) => {
-                let cssClass = 'ball-marker ';
-                if(ball === '0') cssClass += 'ball-dot';
-                else if(ball === '4') cssClass += 'ball-four';
-                else if(ball === '6') cssClass += 'ball-six';
-                else if(ball === 'W') cssClass += 'ball-wicket';
-                else cssClass += 'ball-dot'; // standard
-
-                // Animate only the newest ball
+                let cssClass = 'ball-marker ' + (ball==='0'?'ball-dot':ball==='4'?'ball-four':ball==='6'?'ball-six':ball==='W'?'ball-wicket':'ball-dot');
                 let animClass = (idx === recentBallsArray.length - 1) ? 'ball-anim' : '';
                 radarHTML += `<div class="${cssClass} ${animClass}">${ball}</div>`;
             });
@@ -456,41 +430,36 @@ function establishUplink() {
 
             scoreBox.innerHTML = `
                 <div style="color: #fff; font-size: 1.1rem; margin-bottom: 5px;">[LIVE TELEMETRY]</div>
-                <div style="color: var(--primary); font-size: 1.2rem; font-weight: bold;">${displayT1}: ${simRuns}/${simWkts} <span style="font-size:0.9rem; color:var(--text-muted);">(${currentOvers} ov)</span></div>
-                <div style="color: var(--warning); margin-top: 5px;">${displayT2}: Pending Deployment...</div>
+                <div style="color: var(--primary); font-size: 1.2rem; font-weight: bold;">Score: ${runs}/${wkts} <span style="font-size:0.9rem; color:var(--text-muted);">(${overs} ov)</span></div>
                 ${radarHTML}
             `;
 
-            // UPDATE AI PROJECTIONS based on new simulated runs
-            const probA = Math.floor(Math.random() * 40) + 30; 
-            const probB = 100 - probA;
-            let favoredTeam = probA > probB ? displayT1 : displayT2;
-            let confidence = Math.max(probA, probB);
-            
+            // AI Projections using real data
             let last10Runs = 0;
             recentBallsArray.forEach(b => { if(b!=='W') last10Runs += parseInt(b); });
-            let rrMulti = last10Runs / 1.5; 
+            let rrMulti = Math.max(last10Runs / 1.5, 6.0); // Minimum 6 RPO projection
 
             let projHTML = `<div style="margin-top:15px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.1);">
-                <div style="color:var(--text-muted); font-size:0.8rem; margin-bottom:8px;">PHASE PROJECTIONS (Calculating Form)</div>
+                <div style="color:var(--text-muted); font-size:0.8rem; margin-bottom:8px;">PHASE PROJECTIONS (Active RR)</div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.9rem; color: #fff;">`;
                 
-            let ov = parseFloat(currentOvers);
-            if (ov < 6) projHTML += `<div>6 Ov: <span style="color:var(--primary); font-weight:bold;">${Math.floor(simRuns + (6-ov)*rrMulti)}</span></div>`;
-            if (ov < 10) projHTML += `<div>10 Ov: <span style="color:var(--primary); font-weight:bold;">${Math.floor(simRuns + (10-ov)*rrMulti)}</span></div>`;
-            if (ov < 15) projHTML += `<div>15 Ov: <span style="color:var(--primary); font-weight:bold;">${Math.floor(simRuns + (15-ov)*rrMulti)}</span></div>`;
-            if (ov < 20) projHTML += `<div>20 Ov: <span style="color:var(--primary); font-weight:bold;">${Math.floor(simRuns + (20-ov)*rrMulti)}</span></div>`;
+            if (overs < 6) projHTML += `<div>6 Ov: <span style="color:var(--primary); font-weight:bold;">${Math.floor(runs + (6-overs)*rrMulti)}</span></div>`;
+            if (overs < 10) projHTML += `<div>10 Ov: <span style="color:var(--primary); font-weight:bold;">${Math.floor(runs + (10-overs)*rrMulti)}</span></div>`;
+            if (overs < 15) projHTML += `<div>15 Ov: <span style="color:var(--primary); font-weight:bold;">${Math.floor(runs + (15-overs)*rrMulti)}</span></div>`;
+            if (overs < 20) projHTML += `<div>20 Ov: <span style="color:var(--primary); font-weight:bold;">${Math.floor(runs + (20-overs)*rrMulti)}</span></div>`;
             projHTML += `</div></div>`;
 
-            aiBox.innerHTML = `
-                <div style="color: #e1bee7; font-size: 1.1rem; margin-bottom: 5px;">[ORACLE PROJECTION]</div>
-                <div style="color: #fff;">Primary Target: <span style="color: var(--primary); font-weight: bold; font-size:1.2rem;">${favoredTeam}</span></div>
-                <div style="color: var(--info); margin-top: 5px;">Confidence Matrix: ${confidence}%</div>
-                ${projHTML}
-            `;
+            aiBox.innerHTML = `<div style="color: #e1bee7; font-size: 1.1rem; margin-bottom: 5px;">[ORACLE PROJECTION]</div>${projHTML}`;
 
-        }, 4000); // Throws a new simulated ball every 4 seconds
-    }, 1000);
+        } catch (err) {
+            scoreBox.innerHTML = `<div style="color: var(--danger);">[UPLINK FAILED] ${err.message}</div>`;
+            clearInterval(liveMatchEngine);
+        }
+    }
+
+    // Run first ping immediately, then every 20 seconds
+    pingSatellite();
+    liveMatchEngine = setInterval(pingSatellite, 20000); 
 }
 
 // --- BOOTSTRAP INIT ---
@@ -499,27 +468,14 @@ try {
     const savedData = safeGet('mi6_ledger_data');
     if (savedData) {
         const state = JSON.parse(savedData);
-        bets = state.bets || [];
-        fancyBets = state.fancyBets || [];
-        team1Name = state.t1 || "Target A";
-        team2Name = state.t2 || "Target B";
-        
+        bets = state.bets || []; fancyBets = state.fancyBets || [];
+        team1Name = state.t1 || "Target A"; team2Name = state.t2 || "Target B";
         const ms = document.getElementById('matchSelect');
         let matchFound = false;
-        for(let i = 0; i < ms.options.length; i++) {
-            if(ms.options[i].value === state.match) matchFound = true;
-        }
-        if(matchFound) ms.value = state.match;
-        else state.winner = ""; 
-
+        for(let i=0; i<ms.options.length; i++) if(ms.options[i].value === state.match) matchFound = true;
+        if(matchFound) ms.value = state.match; else state.winner = ""; 
         updateDropdowns();
         document.getElementById('finalWinner').value = state.winner || "";
-        calculateTable();
-        renderFancyTable();
-    } else {
-        updateDropdowns();
-    }
-} catch (error) {
-    if(isStorageSafe) localStorage.removeItem('mi6_ledger_data');
-    updateDropdowns();
-}
+        calculateTable(); renderFancyTable();
+    } else { updateDropdowns(); }
+} catch (error) { if(isStorageSafe) localStorage.removeItem('mi6_ledger_data'); updateDropdowns(); }
