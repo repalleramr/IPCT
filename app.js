@@ -1,10 +1,39 @@
+// --- SAFE STORAGE WRAPPER ---
+let isStorageSafe = false;
+let memoryStorage = {};
+
+try {
+    localStorage.setItem('__test_ping__', '1');
+    localStorage.removeItem('__test_ping__');
+    isStorageSafe = true;
+} catch (error) {
+    isStorageSafe = false;
+    console.log("Incognito Mode: Using temporary RAM.");
+}
+
+function safeSet(key, value) {
+    if (isStorageSafe) {
+        try { localStorage.setItem(key, value); } catch(e){}
+    } else {
+        memoryStorage[key] = value;
+    }
+}
+
+function safeGet(key) {
+    if (isStorageSafe) {
+        try { return localStorage.getItem(key); } catch(e){ return null; }
+    }
+    return memoryStorage[key] || null;
+}
+
+// --- GLOBAL VARIABLES ---
 let bets = [];
 let fancyBets = []; 
 let team1Name = "Target A";
 let team2Name = "Target B";
 let editingIndex = -1; 
+let uplinkInterval;
 
-// UPDATED SCHEDULE: LEAGUE TILL MAY 24, PLAYOFFS TBD
 const iplMatches = [
     "May 11: Punjab Kings vs Delhi Capitals",
     "May 12: Gujarat Titans vs Sunrisers Hyderabad",
@@ -28,16 +57,14 @@ const iplMatches = [
     "May 31 (Final): TBD vs TBD"
 ];
 
-// --- TAB NAVIGATION LOGIC ---
+// --- APP LOGIC ---
 function switchTab(tabId) {
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-    
-    document.querySelector(`button[onclick="switchTab('${tabId}')"]`).classList.add('active');
+    document.getElementById('btn-' + tabId).classList.add('active');
     document.getElementById(tabId + 'Tab').classList.add('active');
 }
 
-// --- INITIALIZATION & STORAGE ---
 function initMatchList() {
     const select = document.getElementById('matchSelect');
     iplMatches.forEach(match => {
@@ -57,10 +84,9 @@ function saveState() {
         t2: team2Name,
         winner: document.getElementById('finalWinner').value
     };
-    localStorage.setItem('mi6_ledger_data', JSON.stringify(state));
+    safeSet('mi6_ledger_data', JSON.stringify(state));
 }
 
-// --- CORE MISSION LOGIC (TAB 1) ---
 function loadSelectedMatch() {
     if (bets.length > 0 || fancyBets.length > 0) {
         if (confirm("Initiate new mission? This will burn current core AND phase logs.")) {
@@ -71,8 +97,10 @@ function loadSelectedMatch() {
             document.getElementById('finalWinner').value = "";
             renderFancyTable();
         } else {
-            const saved = localStorage.getItem('mi6_ledger_data');
-            if(saved) document.getElementById('matchSelect').value = JSON.parse(saved).match || "";
+            const saved = safeGet('mi6_ledger_data');
+            if(saved) {
+                try { document.getElementById('matchSelect').value = JSON.parse(saved).match || ""; } catch(e){}
+            }
             return;
         }
     }
@@ -80,14 +108,14 @@ function loadSelectedMatch() {
     if (val) {
         const teamsPart = val.split(': ')[1];
         const teams = teamsPart.split(' vs ');
-        team1Name = teams[0];
-        team2Name = teams[1];
+        team1Name = teams[0] || "Target A";
+        team2Name = teams[1] || "Target B";
     } else {
         team1Name = "Target A";
         team2Name = "Target B";
     }
     
-    if(window.uplinkInterval) clearInterval(window.uplinkInterval);
+    if(uplinkInterval) clearInterval(uplinkInterval);
     document.getElementById('liveScoreBox').innerHTML = "> AWAITING UPLINK INITIATION...";
     document.getElementById('aiPredictionBox').innerHTML = "> ORACLE ENGINE STANDBY...";
 
@@ -115,7 +143,6 @@ function updateDropdowns() {
 function calculatePreview(action, rate, stake) {
     let favPL = 0, oppPL = 0;
     if (!rate || !stake) return { favPL, oppPL };
-    
     if (action === 'Play') {
         favPL = stake * (rate / 100);
         oppPL = -stake;
@@ -130,7 +157,6 @@ function getBaseExposure() {
     let t1Base = 0, t2Base = 0;
     bets.forEach((b, index) => {
         if (index === editingIndex) return; 
-        
         if (b.team === team1Name) {
             t1Base += b.favPL;
             t2Base += b.oppPL;
@@ -292,7 +318,6 @@ function calculateTable() {
     saveState();
 }
 
-// --- PHASE OBJECTIVES (FANCY SESSIONS) LOGIC (TAB 2) ---
 function addFancyBet() {
     const phase = document.getElementById('fancyPhase').value;
     const action = document.getElementById('fancyAction').value;
@@ -368,7 +393,6 @@ function renderFancyTable() {
         }
 
         const tr = document.createElement('tr');
-        
         let pnlDisplay = '-';
         if(bet.status === "Resolved") {
             pnlDisplay = formatMoney(bet.pnl);
@@ -392,21 +416,16 @@ function renderFancyTable() {
     saveState();
 }
 
-// --- TAB 3: LIVE SCORE & AI PREDICTION WITH COUNTDOWN ---
-
 function getMatchTime(matchStr) {
-    // Extracts "May 11" from strings
+    if (!matchStr) return new Date();
     let datePart = matchStr.split(':')[0].split('(')[0].trim();
-    
-    // Default match time is 7:30 PM IST
     let targetDateStr = `${datePart}, 2026 19:30:00`;
     
-    // Account for specific 3:30 PM Double Headers 
     if (matchStr.includes("Punjab Kings vs Sunrisers Hyderabad") || 
-        matchStr.includes("Lucknow Super Giants vs Mumbai Indians")) {
+        matchStr.includes("Lucknow Super Giants vs Mumbai Indians") ||
+        matchStr.includes("Royal Challengers Bengaluru vs Kolkata Knight Riders")) {
         targetDateStr = `${datePart}, 2026 15:30:00`;
     }
-    
     return new Date(targetDateStr);
 }
 
@@ -420,22 +439,20 @@ function establishUplink() {
     const scoreBox = document.getElementById('liveScoreBox');
     const aiBox = document.getElementById('aiPredictionBox');
     
-    if (window.uplinkInterval) clearInterval(window.uplinkInterval);
+    if (uplinkInterval) clearInterval(uplinkInterval);
 
     const targetTime = getMatchTime(matchStr);
     const now = new Date();
 
     if (targetTime > now) {
-        // MATCH IN THE FUTURE -> SHOW COUNTDOWN
         aiBox.innerHTML = "> ORACLE ENGINE STANDBY... AWAITING MISSION COMMENCEMENT.";
 
-        window.uplinkInterval = setInterval(() => {
+        uplinkInterval = setInterval(() => {
             const currentTime = new Date().getTime();
             const distance = targetTime.getTime() - currentTime;
 
             if (distance < 0) {
-                // Countdown hit zero! Clear it and restart the function to show scores
-                clearInterval(window.uplinkInterval);
+                clearInterval(uplinkInterval);
                 establishUplink();
                 return;
             }
@@ -452,9 +469,7 @@ function establishUplink() {
                 <div style="color: var(--text-muted); font-size: 0.85rem;">Scheduled: ${targetTime.toLocaleString()}</div>
             `;
         }, 1000);
-        
     } else {
-        // MATCH HAS STARTED -> SHOW LIVE UPLINK AND AI
         scoreBox.innerHTML = "> ESTABLISHING ENCRYPTED UPLINK... [||||      ]";
         aiBox.innerHTML = "> IGNITING QUANTUM ORACLE ENGINE... [||||      ]";
 
@@ -463,7 +478,6 @@ function establishUplink() {
             const wkts = Math.floor(Math.random() * 8) + 1;
             const overs = (Math.floor(Math.random() * 6) + 14) + "." + Math.floor(Math.random() * 6);
             
-            // If teams are TBD, keep names generic
             let displayT1 = team1Name === "TBD" ? "Target A" : team1Name;
             let displayT2 = team2Name === "TBD" ? "Target B" : team2Name;
 
@@ -488,39 +502,27 @@ function establishUplink() {
     }
 }
 
-// --- EXPORT LOGIC ---
 async function saveAsCSV() {
     if (bets.length === 0 && fancyBets.length === 0) {
         alert("No intel to export!");
         return;
     }
-
     const matchName = document.getElementById('matchSelect').value || "Classified Mission";
     const finalWinner = document.getElementById('finalWinner').value;
-
-    let csvContent = `Mission,${matchName}\n`;
-    csvContent += `Asset Secured,${finalWinner || 'Pending Clearance'}\n\n`;
+    let csvContent = `Mission,${matchName}\nAsset Secured,${finalWinner || 'Pending Clearance'}\n\n`;
     
-    // Core Bets
-    csvContent += "--- CORE LEDGER ---\n";
-    csvContent += "Log #,Faction,Tactic,Intel,Funds,Yield A,Yield B,Final Result\n";
+    csvContent += "--- CORE LEDGER ---\nLog #,Faction,Tactic,Intel,Funds,Yield A,Yield B,Final Result\n";
     bets.forEach((bet, index) => {
         let finalPL = 0;
         let isFinal = false;
         if (finalWinner) {
             isFinal = true;
-            if (finalWinner === bet.team) {
-                finalPL = bet.favPL;
-            } else {
-                finalPL = bet.oppPL;
-            }
+            finalPL = (finalWinner === bet.team) ? bet.favPL : bet.oppPL;
         }
         csvContent += `${index + 1},${bet.team},${bet.action},${bet.rate},${bet.stake},${bet.favPL},${bet.oppPL},${isFinal ? finalPL : '-'}\n`;
     });
 
-    // Fancy Bets
-    csvContent += "\n--- PHASE OBJECTIVES (SESSIONS) ---\n";
-    csvContent += "Phase,Stance,Line,Funds,Status,Net Result\n";
+    csvContent += "\n--- PHASE OBJECTIVES (SESSIONS) ---\nPhase,Stance,Line,Funds,Status,Net Result\n";
     fancyBets.forEach((bet) => {
         csvContent += `${bet.phase},${bet.action},${bet.line},${bet.stake},${bet.status},${bet.status === 'Resolved' ? bet.pnl : '-'}\n`;
     });
@@ -531,4 +533,6 @@ async function saveAsCSV() {
                 suggestedName: 'mi6_intel_export.csv',
                 types: [{ description: 'CSV File', accept: { 'text/csv': ['.csv'] } }],
             });
-            const writable = await handle.
+            const writable = await handle.createWritable();
+            await writable.write(csvContent);
+      
