@@ -30,7 +30,7 @@
 
         /* TAB NAVIGATION SYSTEM */
         .tab-container { display: flex; margin-bottom: 20px; background: var(--input-bg); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-        .tab-btn { flex: 1; border-radius: 0; background: transparent; color: var(--text-muted); box-shadow: none; height: 50px; font-size: 0.85rem; border-right: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.5px; padding: 0 5px;}
+        .tab-btn { flex: 1; border-radius: 0; background: transparent; color: var(--text-muted); box-shadow: none; height: 50px; font-size: 0.85rem; border-right: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.5px; padding: 0 5px; cursor: pointer;}
         .tab-btn:last-child { border-right: none; }
         .tab-btn.active { background: rgba(0, 230, 118, 0.1); color: var(--primary); border-bottom: 3px solid var(--primary); font-weight: 800; }
         .tab-content { display: none; animation: fadeIn 0.3s ease-in-out; }
@@ -76,7 +76,6 @@
         .data-panel { background: rgba(0,0,0,0.5); border: 1px solid var(--border); border-radius: 10px; padding: 15px; margin-bottom: 15px; font-family: monospace; font-size: 0.95rem; line-height: 1.5; color: var(--info); }
         .ai-panel { border-color: #9c27b0; color: #e1bee7; }
     </style>
-    <link rel="manifest" href="manifest.json">
 </head>
 <body>
     <div class="app-container">
@@ -85,9 +84,9 @@
         </header>
 
         <div class="tab-container">
-            <button class="tab-btn active" onclick="switchTab('main')">Core Mission</button>
-            <button class="tab-btn" onclick="switchTab('fancy')">Phase Goals</button>
-            <button class="tab-btn" onclick="switchTab('uplink')">Sat-Uplink</button>
+            <button id="btn-main" class="tab-btn active" onclick="switchTab('main')">Core Mission</button>
+            <button id="btn-fancy" class="tab-btn" onclick="switchTab('fancy')">Phase Goals</button>
+            <button id="btn-uplink" class="tab-btn" onclick="switchTab('uplink')">Sat-Uplink</button>
         </div>
 
         <div id="mainTab" class="tab-content active">
@@ -269,6 +268,89 @@
         </div>
 
     </div>
-    <script src="app.js"></script>
-</body>
-</html>
+
+    <script>
+        // --- SAFE INCOGNITO STORAGE WRAPPER ---
+        // This guarantees the app will NEVER crash if Incognito blocks LocalStorage.
+        const SafeStorage = {
+            get: function(key) {
+                try { return localStorage.getItem(key); } catch(e) { return null; }
+            },
+            set: function(key, val) {
+                try { localStorage.setItem(key, val); } catch(e) { /* Ignore Error in Incognito */ }
+            },
+            remove: function(key) {
+                try { localStorage.removeItem(key); } catch(e) { /* Ignore Error in Incognito */ }
+            }
+        };
+
+        let bets = [];
+        let fancyBets = []; 
+        let team1Name = "Target A";
+        let team2Name = "Target B";
+        let editingIndex = -1; 
+
+        // UPDATED SCHEDULE: LEAGUE TILL MAY 24, PLAYOFFS TBD
+        const iplMatches = [
+            "May 11: Punjab Kings vs Delhi Capitals",
+            "May 12: Gujarat Titans vs Sunrisers Hyderabad",
+            "May 13: Mumbai Indians vs Royal Challengers Bengaluru",
+            "May 14: Kolkata Knight Riders vs Chennai Super Kings",
+            "May 15: Lucknow Super Giants vs Rajasthan Royals",
+            "May 16: Delhi Capitals vs Gujarat Titans",
+            "May 17: Punjab Kings vs Sunrisers Hyderabad",
+            "May 17: Royal Challengers Bengaluru vs Kolkata Knight Riders",
+            "May 18: Chennai Super Kings vs Lucknow Super Giants",
+            "May 19: Mumbai Indians vs Rajasthan Royals",
+            "May 20: Delhi Capitals vs Royal Challengers Bengaluru",
+            "May 21: Kolkata Knight Riders vs Gujarat Titans",
+            "May 22: Sunrisers Hyderabad vs Chennai Super Kings",
+            "May 23: Rajasthan Royals vs Punjab Kings",
+            "May 24: Lucknow Super Giants vs Mumbai Indians",
+            "May 24: Gujarat Titans vs Royal Challengers Bengaluru",
+            "May 26 (Qualifier 1): TBD vs TBD",
+            "May 27 (Eliminator): TBD vs TBD",
+            "May 29 (Qualifier 2): TBD vs TBD",
+            "May 31 (Final): TBD vs TBD"
+        ];
+
+        // --- TAB NAVIGATION LOGIC ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            document.getElementById('btn-' + tabId).classList.add('active');
+            document.getElementById(tabId + 'Tab').classList.add('active');
+        }
+
+        // --- INITIALIZATION & STORAGE ---
+        function initMatchList() {
+            const select = document.getElementById('matchSelect');
+            iplMatches.forEach(match => {
+                let opt = document.createElement('option');
+                opt.value = match;
+                opt.innerHTML = match;
+                select.appendChild(opt);
+            });
+        }
+
+        function saveState() {
+            const state = {
+                bets: bets,
+                fancyBets: fancyBets,
+                match: document.getElementById('matchSelect').value,
+                t1: team1Name,
+                t2: team2Name,
+                winner: document.getElementById('finalWinner').value
+            };
+            SafeStorage.set('mi6_ledger_data', JSON.stringify(state));
+        }
+
+        // --- CORE MISSION LOGIC (TAB 1) ---
+        function loadSelectedMatch() {
+            if (bets.length > 0 || fancyBets.length > 0) {
+                if (confirm("Initiate new mission? This will burn current core AND phase logs.")) {
+                    bets = [];
+                    fancyBets = [];
+                    editingIndex = -1;
+                    document.ge
