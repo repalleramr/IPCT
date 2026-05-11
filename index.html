@@ -7,6 +7,7 @@
     <link rel="apple-touch-icon" href="icon.png">
     <title>MI6 Intelligence Log</title>
     <style>
+        /* NATIVE APP THEME - ESPIONAGE STYLE */
         :root {
             --app-bg: #0b0e14;         
             --card-bg: #161b22;        
@@ -27,6 +28,7 @@
         header h1 { font-size: 1.25rem; color: var(--text-main); font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
         .app-container { max-width: 600px; margin: 0 auto; padding: 15px; }
 
+        /* TAB NAVIGATION SYSTEM */
         .tab-container { display: flex; margin-bottom: 20px; background: var(--input-bg); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
         .tab-btn { flex: 1; border-radius: 0; background: transparent; color: var(--text-muted); box-shadow: none; height: 50px; font-size: 0.85rem; border-right: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.5px; padding: 0 5px; cursor: pointer;}
         .tab-btn:last-child { border-right: none; }
@@ -73,7 +75,6 @@
         .data-panel { background: rgba(0,0,0,0.5); border: 1px solid var(--border); border-radius: 10px; padding: 15px; margin-bottom: 15px; font-family: monospace; font-size: 0.95rem; line-height: 1.5; color: var(--info); }
         .ai-panel { border-color: #9c27b0; color: #e1bee7; }
     </style>
-    <link rel="manifest" href="manifest.json">
 </head>
 <body>
     <div class="app-container">
@@ -267,87 +268,96 @@
     </div>
 
     <script>
-        // FAIL-SAFE INITIALIZATION WRAPPER
-        window.onload = function() {
-            let memoryStorage = {};
-            let isStorageSafe = false;
+        // --- SAFE STORAGE WITHOUT ONLOAD TRAP ---
+        let isStorageSafe = false;
+        let memoryStorage = {};
 
-            try {
-                window.localStorage.setItem('__test_ping__', '1');
-                window.localStorage.removeItem('__test_ping__');
-                isStorageSafe = true;
-            } catch (error) {
-                isStorageSafe = false;
-                console.log("Strict Mode Active: Using Secure RAM Instead of Drive.");
+        try {
+            localStorage.setItem('__test_ping__', '1');
+            localStorage.removeItem('__test_ping__');
+            isStorageSafe = true;
+        } catch (error) {
+            isStorageSafe = false;
+        }
+
+        function safeSet(key, value) {
+            if (isStorageSafe) {
+                try { localStorage.setItem(key, value); } catch(e){}
+            } else {
+                memoryStorage[key] = value;
             }
+        }
 
-            function safeSet(key, value) {
-                if (isStorageSafe) {
-                    try { window.localStorage.setItem(key, value); } catch(e){}
-                } else {
-                    memoryStorage[key] = value;
-                }
+        function safeGet(key) {
+            if (isStorageSafe) {
+                try { return localStorage.getItem(key); } catch(e){ return null; }
             }
+            return memoryStorage[key] || null;
+        }
 
-            function safeGet(key) {
-                if (isStorageSafe) {
-                    try { return window.localStorage.getItem(key); } catch(e){ return null; }
-                }
-                return memoryStorage[key] || null;
-            }
+        let bets = [];
+        let fancyBets = []; 
+        let team1Name = "Target A";
+        let team2Name = "Target B";
+        let editingIndex = -1; 
+        let uplinkInterval;
 
-            // Expose the global functions to the window so the HTML buttons can reach them
-            window.switchTab = function(tabId) {
-                document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-                document.getElementById('btn-' + tabId).classList.add('active');
-                document.getElementById(tabId + 'Tab').classList.add('active');
-            }
+        const iplMatches = [
+            "May 11: Punjab Kings vs Delhi Capitals",
+            "May 12: Gujarat Titans vs Sunrisers Hyderabad",
+            "May 13: Mumbai Indians vs Royal Challengers Bengaluru",
+            "May 14: Kolkata Knight Riders vs Chennai Super Kings",
+            "May 15: Lucknow Super Giants vs Rajasthan Royals",
+            "May 16: Delhi Capitals vs Gujarat Titans",
+            "May 17: Punjab Kings vs Sunrisers Hyderabad",
+            "May 17: Royal Challengers Bengaluru vs Kolkata Knight Riders",
+            "May 18: Chennai Super Kings vs Lucknow Super Giants",
+            "May 19: Mumbai Indians vs Rajasthan Royals",
+            "May 20: Delhi Capitals vs Royal Challengers Bengaluru",
+            "May 21: Kolkata Knight Riders vs Gujarat Titans",
+            "May 22: Sunrisers Hyderabad vs Chennai Super Kings",
+            "May 23: Rajasthan Royals vs Punjab Kings",
+            "May 24: Lucknow Super Giants vs Mumbai Indians",
+            "May 24: Gujarat Titans vs Royal Challengers Bengaluru",
+            "May 26 (Qualifier 1): TBD vs TBD",
+            "May 27 (Eliminator): TBD vs TBD",
+            "May 29 (Qualifier 2): TBD vs TBD",
+            "May 31 (Final): TBD vs TBD"
+        ];
 
-            let bets = [];
-            let fancyBets = []; 
-            let team1Name = "Target A";
-            let team2Name = "Target B";
-            let editingIndex = -1; 
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById('btn-' + tabId).classList.add('active');
+            document.getElementById(tabId + 'Tab').classList.add('active');
+        }
 
-            const iplMatches = [
-                "May 11: Punjab Kings vs Delhi Capitals",
-                "May 12: Gujarat Titans vs Sunrisers Hyderabad",
-                "May 13: Mumbai Indians vs Royal Challengers Bengaluru",
-                "May 14: Kolkata Knight Riders vs Chennai Super Kings",
-                "May 15: Lucknow Super Giants vs Rajasthan Royals",
-                "May 16: Delhi Capitals vs Gujarat Titans",
-                "May 17: Punjab Kings vs Sunrisers Hyderabad",
-                "May 17: Royal Challengers Bengaluru vs Kolkata Knight Riders",
-                "May 18: Chennai Super Kings vs Lucknow Super Giants",
-                "May 19: Mumbai Indians vs Rajasthan Royals",
-                "May 20: Delhi Capitals vs Royal Challengers Bengaluru",
-                "May 21: Kolkata Knight Riders vs Gujarat Titans",
-                "May 22: Sunrisers Hyderabad vs Chennai Super Kings",
-                "May 23: Rajasthan Royals vs Punjab Kings",
-                "May 24: Lucknow Super Giants vs Mumbai Indians",
-                "May 24: Gujarat Titans vs Royal Challengers Bengaluru",
-                "May 26 (Qualifier 1): TBD vs TBD",
-                "May 27 (Eliminator): TBD vs TBD",
-                "May 29 (Qualifier 2): TBD vs TBD",
-                "May 31 (Final): TBD vs TBD"
-            ];
+        function initMatchList() {
+            const select = document.getElementById('matchSelect');
+            iplMatches.forEach(match => {
+                let opt = document.createElement('option');
+                opt.value = match;
+                opt.innerHTML = match;
+                select.appendChild(opt);
+            });
+        }
 
-            function initMatchList() {
-                const select = document.getElementById('matchSelect');
-                iplMatches.forEach(match => {
-                    let opt = document.createElement('option');
-                    opt.value = match;
-                    opt.innerHTML = match;
-                    select.appendChild(opt);
-                });
-            }
+        function saveState() {
+            const state = {
+                bets: bets,
+                fancyBets: fancyBets,
+                match: document.getElementById('matchSelect').value,
+                t1: team1Name,
+                t2: team2Name,
+                winner: document.getElementById('finalWinner').value
+            };
+            safeSet('mi6_ledger_data', JSON.stringify(state));
+        }
 
-            function saveState() {
-                const state = {
-                    bets: bets,
-                    fancyBets: fancyBets,
-                    match: document.getElementById('matchSelect').value,
-                    t1: team1Name,
-                    t2: team2Name,
-                    winner: document.getElementById('finalWinner'
+        function loadSelectedMatch() {
+            if (bets.length > 0 || fancyBets.length > 0) {
+                if (confirm("Initiate new mission? This will burn current core AND phase logs.")) {
+                    bets = [];
+                    fancyBets = [];
+                    editingIndex = -1;
+                    document.getElementById('addBetBtn').innerText
