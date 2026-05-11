@@ -1,4 +1,6 @@
-// --- SAFE STORAGE WRAPPER ---
+console.log("MI6 System Booting...");
+
+// --- SAFE STORAGE WRAPPER (Crash-Proof for Incognito) ---
 let isStorageSafe = false;
 let memoryStorage = {};
 
@@ -32,7 +34,7 @@ let fancyBets = [];
 let team1Name = "Target A";
 let team2Name = "Target B";
 let editingIndex = -1; 
-let uplinkInterval;
+let uplinkInterval = null;
 
 const iplMatches = [
     "May 11: Punjab Kings vs Delhi Capitals",
@@ -67,6 +69,7 @@ function switchTab(tabId) {
 
 function initMatchList() {
     const select = document.getElementById('matchSelect');
+    if(!select) return; 
     iplMatches.forEach(match => {
         let opt = document.createElement('option');
         opt.value = match;
@@ -533,6 +536,4 @@ async function saveAsCSV() {
                 suggestedName: 'mi6_intel_export.csv',
                 types: [{ description: 'CSV File', accept: { 'text/csv': ['.csv'] } }],
             });
-            const writable = await handle.createWritable();
-            await writable.write(csvContent);
-      
+            
