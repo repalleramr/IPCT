@@ -4,35 +4,21 @@ let team1Name = "Target A";
 let team2Name = "Target B";
 let editingIndex = -1; 
 
+// UPDATED SCHEDULE: FROM MAY 11 TO FINAL
 const iplMatches = [
-    "Mission 1: Royal Challengers Bengaluru vs Sunrisers Hyderabad", "Mission 2: Mumbai Indians vs Kolkata Knight Riders",
-    "Mission 3: Rajasthan Royals vs Chennai Super Kings", "Mission 4: Punjab Kings vs Gujarat Titans",
-    "Mission 5: Lucknow Super Giants vs Delhi Capitals", "Mission 6: Kolkata Knight Riders vs Sunrisers Hyderabad",
-    "Mission 7: Chennai Super Kings vs Punjab Kings", "Mission 8: Delhi Capitals vs Mumbai Indians",
-    "Mission 9: Gujarat Titans vs Rajasthan Royals", "Mission 10: Sunrisers Hyderabad vs Lucknow Super Giants",
-    "Mission 11: Royal Challengers Bengaluru vs Chennai Super Kings", "Mission 12: Kolkata Knight Riders vs Punjab Kings",
-    "Mission 13: Rajasthan Royals vs Mumbai Indians", "Mission 14: Delhi Capitals vs Gujarat Titans",
-    "Mission 15: Kolkata Knight Riders vs Lucknow Super Giants", "Mission 16: Rajasthan Royals vs Royal Challengers Bengaluru",
-    "Mission 17: Punjab Kings vs Sunrisers Hyderabad", "Mission 18: Chennai Super Kings vs Delhi Capitals",
-    "Mission 19: Lucknow Super Giants vs Gujarat Titans", "Mission 20: Mumbai Indians vs Royal Challengers Bengaluru",
-    "Mission 21: Sunrisers Hyderabad vs Rajasthan Royals", "Mission 22: Chennai Super Kings vs Kolkata Knight Riders",
-    "Mission 23: Royal Challengers Bengaluru vs Lucknow Super Giants", "Mission 24: Mumbai Indians vs Punjab Kings",
-    "Mission 25: Gujarat Titans vs Kolkata Knight Riders", "Mission 26: Royal Challengers Bengaluru vs Delhi Capitals",
-    "Mission 27: Sunrisers Hyderabad vs Chennai Super Kings", "Mission 28: Kolkata Knight Riders vs Rajasthan Royals",
-    "Mission 29: Punjab Kings vs Lucknow Super Giants", "Mission 30: Gujarat Titans vs Mumbai Indians",
-    "Mission 31: Sunrisers Hyderabad vs Delhi Capitals", "Mission 32: Lucknow Super Giants vs Rajasthan Royals",
-    "Mission 33: Mumbai Indians vs Chennai Super Kings", "Mission 34: Royal Challengers Bengaluru vs Gujarat Titans",
-    "Mission 35: Delhi Capitals vs Punjab Kings", "Mission 36: Rajasthan Royals vs Sunrisers Hyderabad",
-    "Mission 37: Gujarat Titans vs Chennai Super Kings", "Mission 38: Lucknow Super Giants vs Kolkata Knight Riders",
-    "Mission 39: Delhi Capitals vs Royal Challengers Bengaluru", "Mission 40: Punjab Kings vs Rajasthan Royals",
-    "Mission 41: Mumbai Indians vs Sunrisers Hyderabad", "Mission 42: Gujarat Titans vs Royal Challengers Bengaluru",
-    "Mission 43: Rajasthan Royals vs Delhi Capitals", "Mission 44: Chennai Super Kings vs Mumbai Indians",
-    "Mission 45: Sunrisers Hyderabad vs Kolkata Knight Riders", "Mission 46: Gujarat Titans vs Punjab Kings",
-    "Mission 47: Mumbai Indians vs Lucknow Super Giants", "Mission 48: Delhi Capitals vs Chennai Super Kings",
-    "Mission 49: Sunrisers Hyderabad vs Punjab Kings", "Mission 50: Lucknow Super Giants vs Royal Challengers Bengaluru",
-    "Mission 51: Delhi Capitals vs Kolkata Knight Riders", "Mission 52: Rajasthan Royals vs Gujarat Titans",
-    "Mission 53: Chennai Super Kings vs Lucknow Super Giants", "Mission 54: Royal Challengers Bengaluru vs Mumbai Indians",
-    "Mission 55: Punjab Kings vs Delhi Capitals", "Mission 56: Gujarat Titans vs Sunrisers Hyderabad"
+    "May 11: Punjab Kings vs Delhi Capitals",
+    "May 12: Gujarat Titans vs Sunrisers Hyderabad",
+    "May 13: Punjab Kings vs Royal Challengers Bengaluru",
+    "May 14: Delhi Capitals vs Lucknow Super Giants",
+    "May 15: Rajasthan Royals vs Chennai Super Kings",
+    "May 16: Sunrisers Hyderabad vs Gujarat Titans",
+    "May 17: Mumbai Indians vs Lucknow Super Giants",
+    "May 17: Kolkata Knight Riders vs Mumbai Indians",
+    "May 18: Royal Challengers Bengaluru vs Chennai Super Kings",
+    "May 19 (Qualifier 1): TBD vs TBD",
+    "May 20 (Eliminator): TBD vs TBD",
+    "May 22 (Qualifier 2): TBD vs TBD",
+    "May 24 (Final): TBD vs TBD"
 ];
 
 // --- TAB NAVIGATION LOGIC ---
@@ -399,13 +385,10 @@ function establishUplink() {
     const scoreBox = document.getElementById('liveScoreBox');
     const aiBox = document.getElementById('aiPredictionBox');
 
-    // Show loading states
     scoreBox.innerHTML = "> ESTABLISHING ENCRYPTED UPLINK... [||||      ]";
     aiBox.innerHTML = "> IGNITING QUANTUM ORACLE ENGINE... [||||      ]";
 
-    // Simulate network delay for realism
     setTimeout(() => {
-        // Generate simulated realistic cricket scores
         const runs = Math.floor(Math.random() * 80) + 120;
         const wkts = Math.floor(Math.random() * 8) + 1;
         const overs = (Math.floor(Math.random() * 6) + 14) + "." + Math.floor(Math.random() * 6);
@@ -416,8 +399,7 @@ function establishUplink() {
             <div style="color: var(--warning); margin-top: 5px;">${team2Name}: Pending Deployment...</div>
         `;
 
-        // Generate AI Prediction
-        const probA = Math.floor(Math.random() * 40) + 30; // Random prob between 30 and 70
+        const probA = Math.floor(Math.random() * 40) + 30; 
         const probB = 100 - probA;
         let favoredTeam = probA > probB ? team1Name : team2Name;
         let confidence = Math.max(probA, probB);
@@ -497,4 +479,22 @@ initMatchList();
 const savedData = localStorage.getItem('mi6_ledger_data');
 if (savedData) {
     const state = JSON.parse(savedData);
-    bets = state.bets |
+    bets = state.bets || [];
+    fancyBets = state.fancyBets || [];
+    team1Name = state.t1 || "Target A";
+    team2Name = state.t2 || "Target B";
+    document.getElementById('matchSelect').value = state.match || "";
+    updateDropdowns();
+    document.getElementById('finalWinner').value = state.winner || "";
+    calculateTable();
+    renderFancyTable();
+} else {
+    updateDropdowns();
+}
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(err => console.error(err));
+    });
+    }
+                                                 
