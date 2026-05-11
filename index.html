@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MI6 IPCT Ledger</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>MI6 SYSTEM <span id="connectionStatus">●</span></h1>
+            <select id="matchSelect" onchange="loadSelectedMatch()"></select>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-btn active" id="btn-core" onclick="switchTab('core')">DASHBOARD</button>
+            <button class="tab-btn" id="btn-phase" onclick="switchTab('phase')">PHASE MATRIX</button>
+            <button class="tab-btn" id="btn-live" onclick="switchTab('live')">LIVE UPLINK</button>
+        </nav>
+
+        <div id="coreTab" class="tab-content active">
+            <div class="card">
+                <div class="input-group">
+                    <select id="entryTeam"></select>
+                    <select id="entryAction">
+                        <option value="Play">PLAY (Back)</option>
+                        <option value="Eat">EAT (Lay)</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <input type="number" id="entryRate" placeholder="Rate (e.g. 80)">
+                    <input type="number" id="entryStake" placeholder="Stake">
+                </div>
+                <button class="btn-primary" id="addBetBtn" onclick="addBet()">EXECUTE DIRECTIVE</button>
+                
+                <div class="preview-box">
+                    <div id="previewTeam1">--</div>
+                    <div id="previewTeam2">--</div>
+                </div>
+            </div>
+
+            <div class="card overflow-x">
+                <div class="table-header">
+                    <select id="finalWinner" onchange="calculateTable()"></select>
+                    <h3>CORE LEDGER</h3>
+                </div>
+                <table>
+                    <thead>
+                        <tr><th>#</th><th>Team</th><th>Action</th><th>Rate</th><th>Stake</th><th>(+)</th><th>(-)</th><th>P/L</th><th>Opt</th></tr>
+                    </thead>
+                    <tbody id="betTableBody"></tbody>
+                </table>
+                <div class="total-bar">NET PROFIT: <span id="totalNetProfit">0.00</span></div>
+            </div>
+        </div>
+
+        <div id="phaseTab" class="tab-content">
+            <div class="card">
+                <div class="input-group">
+                    <input type="text" id="fancyPhase" placeholder="Phase (e.g. 6 Over)">
+                    <select id="fancyAction"><option value="Yes">YES</option><option value="No">NO</option></select>
+                </div>
+                <div class="input-group">
+                    <input type="number" id="fancyLine" placeholder="Line">
+                    <input type="number" id="fancyStake" placeholder="Stake">
+                </div>
+                <button class="btn-primary" onclick="addFancyBet()">LOCK PHASE</button>
+            </div>
+
+            <div class="card">
+                <div class="input-group">
+                    <input type="text" id="resolvePhase" placeholder="Phase to Resolve">
+                    <input type="number" id="resolveScore" placeholder="Actual Score">
+                    <button class="btn-warning" onclick="resolvePhase()">RESOLVE</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr><th>Phase</th><th>Side</th><th>Line</th><th>Stake</th><th>Status</th><th>P/L</th><th>Opt</th></tr>
+                    </thead>
+                    <tbody id="fancyTableBody"></tbody>
+                </table>
+                <div class="total-bar">PHASE NET: <span id="fancyNetProfit">0.00</span></div>
+            </div>
+        </div>
+
+        <div id="liveTab" class="tab-content">
+            <div class="card">
+                <div id="liveScoreBox">
+                    <div style="text-align:center; padding:20px; color:var(--text-muted);">
+                        > AWAITING MANUAL INITIALIZATION...
+                        <button onclick="updateManualDisplay()" class="btn-primary" style="margin-top:10px;">START TRACKING</button>
+                    </div>
+                </div>
+            </div>
+            <div class="card" style="margin-top:15px;">
+                <div id="aiPredictionBox">> ORACLE STANDBY...</div>
+            </div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
