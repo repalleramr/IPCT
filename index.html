@@ -25,12 +25,12 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
         body { background-color: var(--app-bg); color: var(--text-main); font-size: 15px; padding-top: 60px; padding-bottom: 30px; }
         header { position: fixed; top: 0; left: 0; width: 100%; background-color: #161b22; height: 60px; display: flex; align-items: center; justify-content: center; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.5); border-bottom: 1px solid var(--border); }
-        header h1 { font-size: 1.25rem; color: var(--text-main); font-weight: 700; letter-spacing: 0.5px; }
+        header h1 { font-size: 1.25rem; color: var(--text-main); font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
         .app-container { max-width: 600px; margin: 0 auto; padding: 15px; }
 
         /* TAB NAVIGATION SYSTEM */
         .tab-container { display: flex; margin-bottom: 20px; background: var(--input-bg); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-        .tab-btn { flex: 1; border-radius: 0; background: transparent; color: var(--text-muted); box-shadow: none; height: 50px; font-size: 0.95rem; border-right: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.5px; }
+        .tab-btn { flex: 1; border-radius: 0; background: transparent; color: var(--text-muted); box-shadow: none; height: 50px; font-size: 0.85rem; border-right: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.5px; padding: 0 5px;}
         .tab-btn:last-child { border-right: none; }
         .tab-btn.active { background: rgba(0, 230, 118, 0.1); color: var(--primary); border-bottom: 3px solid var(--primary); font-weight: 800; }
         .tab-content { display: none; animation: fadeIn 0.3s ease-in-out; }
@@ -57,6 +57,7 @@
         .btn-danger { background-color: var(--danger); color: white; box-shadow: 0 4px 12px rgba(255, 68, 68, 0.3); }
         .btn-warning { background-color: var(--warning); color: black; box-shadow: 0 4px 12px rgba(255, 187, 51, 0.3); }
         .btn-success { background-color: var(--info); color: white; box-shadow: 0 4px 12px rgba(51, 181, 229, 0.3); }
+        .btn-ai { background-color: #9c27b0; color: white; box-shadow: 0 4px 12px rgba(156, 39, 176, 0.3); }
         .table-wrapper { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); background: var(--input-bg); }
         table { width: 100%; border-collapse: collapse; min-width: 700px; }
         th, td { padding: 14px 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.95rem; white-space: nowrap; }
@@ -70,6 +71,10 @@
         .positive { color: var(--primary) !important; font-weight: 800; }
         .negative { color: var(--danger) !important; font-weight: 800; }
         .neutral { color: var(--text-main) !important; }
+        
+        /* DATA PANELS FOR AI TAB */
+        .data-panel { background: rgba(0,0,0,0.5); border: 1px solid var(--border); border-radius: 10px; padding: 15px; margin-bottom: 15px; font-family: monospace; font-size: 0.95rem; line-height: 1.5; color: var(--info); }
+        .ai-panel { border-color: #9c27b0; color: #e1bee7; }
     </style>
     <link rel="manifest" href="manifest.json">
 </head>
@@ -81,7 +86,8 @@
 
         <div class="tab-container">
             <button class="tab-btn active" onclick="switchTab('main')">Core Mission</button>
-            <button class="tab-btn" onclick="switchTab('fancy')">Phase Objectives</button>
+            <button class="tab-btn" onclick="switchTab('fancy')">Phase Goals</button>
+            <button class="tab-btn" onclick="switchTab('uplink')">Sat-Uplink</button>
         </div>
 
         <div id="mainTab" class="tab-content active">
@@ -170,7 +176,7 @@
                 <h3>Deploy Sub-Mission (Session)</h3>
                 <div class="input-grid">
                     <div class="field">
-                        <label>Phase Frame (Overs)</label>
+                        <label>Phase Frame</label>
                         <select id="fancyPhase">
                             <option value="6 Overs">6 Overs</option>
                             <option value="10 Overs">10 Overs</option>
@@ -180,10 +186,10 @@
                         </select>
                     </div>
                     <div class="field">
-                        <label>Stance (Yes/No)</label>
+                        <label>Stance</label>
                         <select id="fancyAction">
-                            <option value="No">Deny (No / Under)</option>
-                            <option value="Yes">Confirm (Yes / Over)</option>
+                            <option value="No">Deny (No)</option>
+                            <option value="Yes">Confirm (Yes)</option>
                         </select>
                     </div>
                     <div class="field">
@@ -199,8 +205,8 @@
             </section>
 
             <section class="card" style="border-color: var(--info);">
-                <h3 style="color: var(--info);">End of Phase Resolution</h3>
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px;">Enter the final runs at the end of the session to instantly settle ALL pending bets for that timeframe.</p>
+                <h3 style="color: var(--info);">Phase Resolution</h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px;">Enter final runs to settle all pending bets for the phase.</p>
                 <div class="input-group">
                     <select id="resolvePhase" style="flex: 1;">
                         <option value="6 Overs">6 Overs</option>
@@ -240,6 +246,25 @@
                 <div class="bottom-actions mt-2">
                     <button class="btn-danger" onclick="clearFancyBets()">Burn Phase Data</button>
                 </div>
+            </section>
+        </div>
+
+        <div id="uplinkTab" class="tab-content">
+            <section class="card">
+                <h3>Live Field Telemetry</h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">Ping secure satellite node for real-time match scores.</p>
+                <div id="liveScoreBox" class="data-panel">
+                    > AWAITING UPLINK INITIATION...
+                </div>
+            </section>
+
+            <section class="card" style="border-color: #9c27b0;">
+                <h3 style="color: #9c27b0;">MI6 Quantum Oracle (AI)</h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">Activate AI to predict outcome probabilities based on intercept data.</p>
+                <div id="aiPredictionBox" class="data-panel ai-panel">
+                    > ORACLE ENGINE STANDBY...
+                </div>
+                <button class="btn-ai mt-2" onclick="establishUplink()">Establish Secure Uplink</button>
             </section>
         </div>
 
