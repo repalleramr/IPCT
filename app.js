@@ -352,7 +352,7 @@ function renderFancyTable() {
     saveState();
 }
 
-// --- TAB 3: VERCEL SATELLITE ENGINE ---
+// --- TAB 3: REAL RAPID-API SATELLITE ENGINE ---
 function getMatchTime(matchStr) {
     if (!matchStr) return new Date();
     const datePart = matchStr.split('(')[0].trim(); 
@@ -366,9 +366,31 @@ function getMatchTime(matchStr) {
     return new Date(`2026-${month}-${dayStr}T${hh}:${mm}:00+05:30`);
 }
 
+function extractScoreFromJSON(data) {
+    let str = JSON.stringify(data);
+    let runs = 0, wkts = 0, overs = 0.0;
+    try {
+        let rMatch = str.match(/"runs"\s*:\s*(\d+)/i) || str.match(/"score"\s*:\s*(\d+)/i);
+        let wMatch = str.match(/"wickets"\s*:\s*(\d+)/i);
+        let oMatch = str.match(/"overs"\s*:\s*([\d\.]+)/i);
+        
+        if (rMatch) runs = parseInt(rMatch[1]);
+        if (wMatch) wkts = parseInt(wMatch[1]);
+        if (oMatch) overs = parseFloat(oMatch[1]);
+    } catch(e) {}
+    return { runs, wkts, overs };
+}
+
 async function establishUplink() {
     const matchStr = document.getElementById('matchSelect').value;
     if (!matchStr) { alert("Mission Control: Please select an Active Mission first."); return; }
+
+    let apiKey = safeGet('rapidapi_key');
+    if (!apiKey) {
+        apiKey = prompt("MI6 Protocol: Enter your secure x-rapidapi-key to initialize live feed.");
+        if (!apiKey) return;
+        safeSet('rapidapi_key', apiKey);
+    }
 
     let matchId = prompt("Enter the Target Match ID from Cricbuzz:", "102040");
     if (!matchId) return;
@@ -385,21 +407,28 @@ async function establishUplink() {
         return;
     }
 
-    if(scoreBox) scoreBox.innerHTML = "> ESTABLISHING ENCRYPTED VERCEL UPLINK... [||||      ]";
+    if(scoreBox) scoreBox.innerHTML = "> ESTABLISHING ENCRYPTED RAPID-API UPLINK... [||||      ]";
     if(aiBox) aiBox.innerHTML = "> IGNITING QUANTUM ORACLE ENGINE... [||||      ]";
+
+    const options = {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'x-rapidapi-host': 'free-cricbuzz-cricket-api.p.rapidapi.com',
+            'x-rapidapi-key': apiKey
+        }
+    };
 
     let recentBallsArray = ['1', '0', '1', '2', '0', '4']; 
 
     async function pingSatellite() {
         try {
-            const response = await fetch(`https://cricbuzz-live-taupe.vercel.app/v1/score/${matchId}`);
-            const json = await response.json();
+            const response = await fetch(`https://free-cricbuzz-cricket-api.p.rapidapi.com/cricket-match-info?matchid=${matchId}`, options);
+            if (!response.ok) throw new Error("API Auth Failed or Limit Reached.");
+            const data = await response.json();
             
-            if (json.code !== 200 || !json.data) throw new Error("Vercel Target Not Found.");
+            const { runs, wkts, overs } = extractScoreFromJSON(data);
             
-            const d = json.data;
-            let crr = parseFloat((d.runRate || "0").replace('CRR: ', '')) || 0;
-
             let outcome = ['0', '1', '2', '4', '6', 'W'][Math.floor(Math.random() * 6)];
             recentBallsArray.push(outcome);
             if(recentBallsArray.length > 6) recentBallsArray.shift();
@@ -413,24 +442,26 @@ async function establishUplink() {
             radarHTML += `</div></div>`;
 
             if(scoreBox) scoreBox.innerHTML = `
-                <div style="color: #fff; font-size: 1.1rem; margin-bottom: 5px;">[VERCEL TELEMETRY]</div>
-                <div style="color: var(--primary); font-size: 1.4rem; font-weight: bold;">Score: ${d.liveScore || "0/0"}</div>
-                <div style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 8px;">CRR: ${d.runRate || "0.00"} | ${d.update}</div>
-                ${d.batsmanOne ? `<div style="font-size:0.8rem; color:#8b949e; margin-bottom:10px;">🏏 ${d.batsmanOne} | ⚾ ${d.bowlerOne}</div>` : ''}
+                <div style="color: #fff; font-size: 1.1rem; margin-bottom: 5px;">[LIVE TELEMETRY]</div>
+                <div style="color: var(--primary); font-size: 1.2rem; font-weight: bold;">Score: ${runs}/${wkts} <span style="font-size:0.9rem; color:var(--text-muted);">(${overs} ov)</span></div>
                 ${radarHTML}
             `;
 
-            let projectedScore = Math.floor(crr * 20);
-            let aggressiveScore = Math.floor((crr + 2) * 20); 
+            let last10Runs = 0;
+            recentBallsArray.forEach(b => { if(b!=='W') last10Runs += parseInt(b); });
+            let rrMulti = Math.max(last10Runs / 1.5, 6.0); 
 
             let projHTML = `<div style="margin-top:15px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.1);">
-                <div style="color:var(--text-muted); font-size:0.8rem; margin-bottom:8px;">20-OVER ORACLE PROJECTION</div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.9rem; color: #fff;">
-                    <div>Current Pace: <span style="color:var(--primary); font-weight:bold;">${projectedScore > 0 ? projectedScore : '-'}</span></div>
-                    <div>Aggressive: <span style="color:var(--warning); font-weight:bold;">${aggressiveScore > 0 ? aggressiveScore : '-'}</span></div>
-                </div></div>`;
+                <div style="color:var(--text-muted); font-size:0.8rem; margin-bottom:8px;">PHASE PROJECTIONS (Active RR)</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.9rem; color: #fff;">`;
+                
+            if (overs < 6) projHTML += `<div>6 Ov: <span style="color:var(--primary); font-weight:bold;">${Math.floor(runs + (6-overs)*rrMulti)}</span></div>`;
+            if (overs < 10) projHTML += `<div>10 Ov: <span style="color:var(--primary); font-weight:bold;">${Math.floor(runs + (10-overs)*rrMulti)}</span></div>`;
+            if (overs < 15) projHTML += `<div>15 Ov: <span style="color:var(--primary); font-weight:bold;">${Math.floor(runs + (15-overs)*rrMulti)}</span></div>`;
+            if (overs < 20) projHTML += `<div>20 Ov: <span style="color:var(--primary); font-weight:bold;">${Math.floor(runs + (20-overs)*rrMulti)}</span></div>`;
+            projHTML += `</div></div>`;
 
-            if(aiBox) aiBox.innerHTML = `<div style="color: #e1bee7; font-size: 1.1rem; margin-bottom: 5px;">[QUANTUM PROJECTION]</div>${projHTML}`;
+            if(aiBox) aiBox.innerHTML = `<div style="color: #e1bee7; font-size: 1.1rem; margin-bottom: 5px;">[ORACLE PROJECTION]</div>${projHTML}`;
 
         } catch (err) {
             if(scoreBox) scoreBox.innerHTML = `<div style="color: var(--danger);">[UPLINK FAILED] ${err.message}</div>`;
