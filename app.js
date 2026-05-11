@@ -79,6 +79,12 @@ function loadSelectedMatch() {
         team1Name = "Target A";
         team2Name = "Target B";
     }
+    
+    // Stop any running countdowns from a previous selection
+    if(window.uplinkInterval) clearInterval(window.uplinkInterval);
+    document.getElementById('liveScoreBox').innerHTML = "> AWAITING UPLINK INITIATION...";
+    document.getElementById('aiPredictionBox').innerHTML = "> ORACLE ENGINE STANDBY...";
+
     updateDropdowns();
     calculateTable();
 }
@@ -380,37 +386,97 @@ function renderFancyTable() {
     saveState();
 }
 
-// --- TAB 3: LIVE SCORE & AI PREDICTION (SIMULATION) ---
+// --- TAB 3: LIVE SCORE & AI PREDICTION WITH COUNTDOWN ---
+
+function getMatchTime(matchStr) {
+    // Extracts "May 11" from strings like "May 19 (Qualifier 1): TBD"
+    let datePart = matchStr.split(':')[0].split('(')[0].trim();
+    
+    // Default match time is 7:30 PM IST (19:30:00)
+    let targetDateStr = `${datePart}, 2026 19:30:00`;
+    
+    // Account for specific 3:30 PM Double Headers 
+    if (matchStr.includes("Mumbai Indians vs Lucknow Super Giants")) {
+        targetDateStr = `${datePart}, 2026 15:30:00`;
+    }
+    
+    return new Date(targetDateStr);
+}
+
 function establishUplink() {
+    const matchStr = document.getElementById('matchSelect').value;
+    if (!matchStr) {
+        alert("Mission Control: Please select an Active Mission first.");
+        return;
+    }
+
     const scoreBox = document.getElementById('liveScoreBox');
     const aiBox = document.getElementById('aiPredictionBox');
+    
+    // Clear any existing timer
+    if (window.uplinkInterval) clearInterval(window.uplinkInterval);
 
-    scoreBox.innerHTML = "> ESTABLISHING ENCRYPTED UPLINK... [||||      ]";
-    aiBox.innerHTML = "> IGNITING QUANTUM ORACLE ENGINE... [||||      ]";
+    const targetTime = getMatchTime(matchStr);
+    const now = new Date();
 
-    setTimeout(() => {
-        const runs = Math.floor(Math.random() * 80) + 120;
-        const wkts = Math.floor(Math.random() * 8) + 1;
-        const overs = (Math.floor(Math.random() * 6) + 14) + "." + Math.floor(Math.random() * 6);
+    if (targetTime > now) {
+        // MATCH IN THE FUTURE -> SHOW COUNTDOWN
+        aiBox.innerHTML = "> ORACLE ENGINE STANDBY... AWAITING MISSION COMMENCEMENT.";
+
+        // Start checking every second
+        window.uplinkInterval = setInterval(() => {
+            const currentTime = new Date().getTime();
+            const distance = targetTime.getTime() - currentTime;
+
+            if (distance < 0) {
+                // Countdown hit zero! Clear it and restart the function to show scores
+                clearInterval(window.uplinkInterval);
+                establishUplink();
+                return;
+            }
+
+            const d = String(Math.floor(distance / (1000 * 60 * 60 * 24))).padStart(2, '0');
+            const h = String(Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))).padStart(2, '0');
+            const m = String(Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
+            const s = String(Math.floor((distance % (1000 * 60)) / 1000)).padStart(2, '0');
+
+            scoreBox.innerHTML = `
+                <div style="color: #fff; font-size: 1.1rem; margin-bottom: 5px;">[MISSION PENDING]</div>
+                <div style="color: var(--warning); font-size: 1.4rem; font-weight: bold; letter-spacing: 2px;">T-MINUS: ${d}d ${h}h ${m}m ${s}s</div>
+                <div style="color: var(--text-muted); margin-top: 8px; font-size: 0.85rem;">Target: ${team1Name} vs ${team2Name}</div>
+                <div style="color: var(--text-muted); font-size: 0.85rem;">Scheduled: ${targetTime.toLocaleString()}</div>
+            `;
+        }, 1000);
         
-        scoreBox.innerHTML = `
-            <div style="color: #fff; font-size: 1.1rem; margin-bottom: 5px;">[LIVE TELEMETRY]</div>
-            <div style="color: var(--primary); font-size: 1.2rem; font-weight: bold;">${team1Name}: ${runs}/${wkts} <span style="font-size:0.9rem; color:var(--text-muted);">(${overs} ov)</span></div>
-            <div style="color: var(--warning); margin-top: 5px;">${team2Name}: Pending Deployment...</div>
-        `;
+    } else {
+        // MATCH HAS STARTED -> SHOW LIVE UPLINK AND AI
+        scoreBox.innerHTML = "> ESTABLISHING ENCRYPTED UPLINK... [||||      ]";
+        aiBox.innerHTML = "> IGNITING QUANTUM ORACLE ENGINE... [||||      ]";
 
-        const probA = Math.floor(Math.random() * 40) + 30; 
-        const probB = 100 - probA;
-        let favoredTeam = probA > probB ? team1Name : team2Name;
-        let confidence = Math.max(probA, probB);
+        setTimeout(() => {
+            const runs = Math.floor(Math.random() * 80) + 120;
+            const wkts = Math.floor(Math.random() * 8) + 1;
+            const overs = (Math.floor(Math.random() * 6) + 14) + "." + Math.floor(Math.random() * 6);
+            
+            scoreBox.innerHTML = `
+                <div style="color: #fff; font-size: 1.1rem; margin-bottom: 5px;">[LIVE TELEMETRY]</div>
+                <div style="color: var(--primary); font-size: 1.2rem; font-weight: bold;">${team1Name}: ${runs}/${wkts} <span style="font-size:0.9rem; color:var(--text-muted);">(${overs} ov)</span></div>
+                <div style="color: var(--warning); margin-top: 5px;">${team2Name}: Pending Deployment...</div>
+            `;
 
-        aiBox.innerHTML = `
-            <div style="color: #e1bee7; font-size: 1.1rem; margin-bottom: 5px;">[ORACLE PROJECTION]</div>
-            <div style="color: #fff;">Primary Target: <span style="color: var(--primary); font-weight: bold; font-size:1.2rem;">${favoredTeam}</span></div>
-            <div style="color: var(--info); margin-top: 5px;">Confidence Matrix: ${confidence}%</div>
-            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 15px; font-style: italic;">* Prediction synthesized via atmospheric data, syndicate funding streams, and historical intercept patterns.</div>
-        `;
-    }, 1800);
+            const probA = Math.floor(Math.random() * 40) + 30; 
+            const probB = 100 - probA;
+            let favoredTeam = probA > probB ? team1Name : team2Name;
+            let confidence = Math.max(probA, probB);
+
+            aiBox.innerHTML = `
+                <div style="color: #e1bee7; font-size: 1.1rem; margin-bottom: 5px;">[ORACLE PROJECTION]</div>
+                <div style="color: #fff;">Primary Target: <span style="color: var(--primary); font-weight: bold; font-size:1.2rem;">${favoredTeam}</span></div>
+                <div style="color: var(--info); margin-top: 5px;">Confidence Matrix: ${confidence}%</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 15px; font-style: italic;">* Prediction synthesized via atmospheric data, syndicate funding streams, and historical intercept patterns.</div>
+            `;
+        }, 1800);
+    }
 }
 
 // --- EXPORT LOGIC ---
@@ -467,34 +533,4 @@ async function saveAsCSV() {
             link.setAttribute("download", "mi6_intel_export.csv");
             document.body.appendChild(link);
             link.click();
-            document.body.removeChild(link);
-        }
-    } catch (err) {
-        console.log("Export aborted.", err);
-    }
-}
-
-// --- BOOTSTRAP ---
-initMatchList();
-const savedData = localStorage.getItem('mi6_ledger_data');
-if (savedData) {
-    const state = JSON.parse(savedData);
-    bets = state.bets || [];
-    fancyBets = state.fancyBets || [];
-    team1Name = state.t1 || "Target A";
-    team2Name = state.t2 || "Target B";
-    document.getElementById('matchSelect').value = state.match || "";
-    updateDropdowns();
-    document.getElementById('finalWinner').value = state.winner || "";
-    calculateTable();
-    renderFancyTable();
-} else {
-    updateDropdowns();
-}
-
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(err => console.error(err));
-    });
-    }
-                                                 
+          
