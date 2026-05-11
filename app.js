@@ -295,7 +295,6 @@ function calculateTable() {
 }
 
 // --- PHASE OBJECTIVES (FANCY SESSIONS) LOGIC (TAB 2) ---
-
 function addFancyBet() {
     const phase = document.getElementById('fancyPhase').value;
     const action = document.getElementById('fancyAction').value;
@@ -314,7 +313,6 @@ function addFancyBet() {
     renderFancyTable();
 }
 
-// NEW: BULK SETTLEMENT LOGIC
 function resolvePhase() {
     const phaseToResolve = document.getElementById('resolvePhase').value;
     const actualStr = document.getElementById('resolveScore').value;
@@ -330,10 +328,8 @@ function resolvePhase() {
     fancyBets.forEach(bet => {
         if(bet.phase === phaseToResolve && bet.status === "Pending") {
             if (bet.action === "Yes") {
-                // If Yes (Over), they win if actual >= line
                 bet.pnl = (actualScore >= bet.line) ? bet.stake : -bet.stake;
             } else {
-                // If No (Under), they win if actual < line
                 bet.pnl = (actualScore < bet.line) ? bet.stake : -bet.stake;
             }
             bet.status = "Resolved";
@@ -344,7 +340,7 @@ function resolvePhase() {
     if(resolvedCount === 0) {
         alert(`No pending tactics found for ${phaseToResolve}.`);
     } else {
-        document.getElementById('resolveScore').value = ''; // clear input
+        document.getElementById('resolveScore').value = ''; 
         renderFancyTable();
     }
 }
@@ -396,6 +392,43 @@ function renderFancyTable() {
 
     document.getElementById('fancyNetProfit').innerHTML = formatMoney(totalFancyPnl);
     saveState();
+}
+
+// --- TAB 3: LIVE SCORE & AI PREDICTION (SIMULATION) ---
+function establishUplink() {
+    const scoreBox = document.getElementById('liveScoreBox');
+    const aiBox = document.getElementById('aiPredictionBox');
+
+    // Show loading states
+    scoreBox.innerHTML = "> ESTABLISHING ENCRYPTED UPLINK... [||||      ]";
+    aiBox.innerHTML = "> IGNITING QUANTUM ORACLE ENGINE... [||||      ]";
+
+    // Simulate network delay for realism
+    setTimeout(() => {
+        // Generate simulated realistic cricket scores
+        const runs = Math.floor(Math.random() * 80) + 120;
+        const wkts = Math.floor(Math.random() * 8) + 1;
+        const overs = (Math.floor(Math.random() * 6) + 14) + "." + Math.floor(Math.random() * 6);
+        
+        scoreBox.innerHTML = `
+            <div style="color: #fff; font-size: 1.1rem; margin-bottom: 5px;">[LIVE TELEMETRY]</div>
+            <div style="color: var(--primary); font-size: 1.2rem; font-weight: bold;">${team1Name}: ${runs}/${wkts} <span style="font-size:0.9rem; color:var(--text-muted);">(${overs} ov)</span></div>
+            <div style="color: var(--warning); margin-top: 5px;">${team2Name}: Pending Deployment...</div>
+        `;
+
+        // Generate AI Prediction
+        const probA = Math.floor(Math.random() * 40) + 30; // Random prob between 30 and 70
+        const probB = 100 - probA;
+        let favoredTeam = probA > probB ? team1Name : team2Name;
+        let confidence = Math.max(probA, probB);
+
+        aiBox.innerHTML = `
+            <div style="color: #e1bee7; font-size: 1.1rem; margin-bottom: 5px;">[ORACLE PROJECTION]</div>
+            <div style="color: #fff;">Primary Target: <span style="color: var(--primary); font-weight: bold; font-size:1.2rem;">${favoredTeam}</span></div>
+            <div style="color: var(--info); margin-top: 5px;">Confidence Matrix: ${confidence}%</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 15px; font-style: italic;">* Prediction synthesized via atmospheric data, syndicate funding streams, and historical intercept patterns.</div>
+        `;
+    }, 1800);
 }
 
 // --- EXPORT LOGIC ---
@@ -464,21 +497,4 @@ initMatchList();
 const savedData = localStorage.getItem('mi6_ledger_data');
 if (savedData) {
     const state = JSON.parse(savedData);
-    bets = state.bets || [];
-    fancyBets = state.fancyBets || [];
-    team1Name = state.t1 || "Target A";
-    team2Name = state.t2 || "Target B";
-    document.getElementById('matchSelect').value = state.match || "";
-    updateDropdowns();
-    document.getElementById('finalWinner').value = state.winner || "";
-    calculateTable();
-    renderFancyTable();
-} else {
-    updateDropdowns();
-}
-
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(err => console.error(err));
-    });
-}
+    bets = state.bets |
