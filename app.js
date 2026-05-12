@@ -358,11 +358,11 @@ async function establishUplink() {
                 const data = json.match_info;
                 const rawScore = data.live_score;
 
-                // Clean the score string
+                // Strip the Cricbuzz string to just "GT 35/2 (6.2)"
                 const scoreParts = rawScore.split('|');
                 const cleanScore = scoreParts[1] ? scoreParts[1].trim() : "Data Encrypted";
                 
-                // Telemetry UI with Bowler Name
+                // Clean UI Tracker without fake ball data
                 let radarHTML = `
                     <div class="radar-box">
                         <div class="radar-title">
@@ -384,7 +384,7 @@ async function establishUplink() {
                     ${radarHTML}
                 `;
 
-                // Oracle AI Projection
+                // Oracle AI Projection Logic based on runs
                 const currentRuns = parseInt(cleanScore.match(/\d+/) || 0);
                 let tactic = "MAINTAIN HOLD: Wait for further phase alignment.";
                 let oracleColor = "var(--info)";
