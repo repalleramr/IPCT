@@ -358,11 +358,11 @@ async function establishUplink() {
                 const data = json.match_info;
                 const rawScore = data.live_score;
 
-                // Strip the Cricbuzz string to just "GT 35/2 (6.2)"
+                // Clean the score string
                 const scoreParts = rawScore.split('|');
                 const cleanScore = scoreParts[1] ? scoreParts[1].trim() : "Data Encrypted";
                 
-                // Clean UI Tracker without fake ball data
+                // Telemetry UI
                 let radarHTML = `
                     <div class="radar-box">
                         <div class="radar-title">
@@ -370,7 +370,7 @@ async function establishUplink() {
                             <span class="radar-status">● LIVE</span>
                         </div>
                         <div style="color: var(--text-muted); font-size: 0.85rem; margin-top: 8px;">
-                            > TARGET TRACKING ENGAGED
+                            > INTERCEPT: ${data.bowler}
                         </div>
                     </div>
                 `;
@@ -378,13 +378,12 @@ async function establishUplink() {
                 scoreBox.innerHTML = `
                     <div style="color: #fff; font-size: 1.1rem; margin-bottom: 5px;">[LIVE UPLINK DECRYPTED]</div>
                     <div style="color: var(--primary); font-size: 1.5rem; font-weight: bold; margin-bottom: 5px;">${cleanScore}</div>
-                    <div style="color: #33b5e5; font-size: 1rem; font-weight: bold; margin-bottom: 5px;">BOWLER: ${data.bowler}</div>
-                    <div style="color: #ff9800; font-size: 0.8rem; margin-bottom: 5px;">STATUS: ${data.status}</div>
+                    <div style="color: #ff9800; font-size: 0.85rem; margin-bottom: 5px;">STATUS: ${data.status}</div>
                     <div style="color: #444; font-size: 0.7rem;">SYNC: ${new Date().toLocaleTimeString()}</div>
                     ${radarHTML}
                 `;
 
-                // Oracle AI Projection Logic based on runs
+                // Oracle AI Projection
                 const currentRuns = parseInt(cleanScore.match(/\d+/) || 0);
                 let tactic = "MAINTAIN HOLD: Wait for further phase alignment.";
                 let oracleColor = "var(--info)";
