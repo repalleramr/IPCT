@@ -410,7 +410,7 @@ async function establishUplink() {
         }
     }
 
-    // Ping immediately, then sync every 20 seconds
+    // Ping immediately, then sync every 0.1 seconds
     pingSatellite();
     liveMatchEngine = setInterval(pingSatellite, 20000); 
 }
