@@ -31,7 +31,6 @@ let team2Name = "Target B";
 let editingIndex = -1; 
 let uplinkInterval = null;
 let liveMatchEngine = null;
-let recentBallsArray = ['1', '0', '1', '2', '0', '4']; // Used for UI Radar
 
 const iplMatches = [
     "May 11 (7:30 PM): Punjab Kings vs Delhi Capitals",
@@ -359,33 +358,33 @@ async function establishUplink() {
                 const data = json.match_info;
                 const rawScore = data.live_score;
 
-                // Strip the Cricbuzz string to just "GT 35/2 (6.2)"
+                // Clean the score string
                 const scoreParts = rawScore.split('|');
                 const cleanScore = scoreParts[1] ? scoreParts[1].trim() : "Data Encrypted";
                 
-                // Keep the cool Radar UI actively spinning for the MI6 aesthetic
-                let outcome = ['0', '1', '2', '4', '6', 'W'][Math.floor(Math.random() * 6)];
-                recentBallsArray.push(outcome);
-                if(recentBallsArray.length > 6) recentBallsArray.shift();
+                // Telemetry UI with Bowler Name
+                let radarHTML = `
+                    <div class="radar-box">
+                        <div class="radar-title">
+                            <span>Sat-Link Telemetry</span>
+                            <span class="radar-status">● LIVE</span>
+                        </div>
+                        <div style="color: var(--text-muted); font-size: 0.85rem; margin-top: 8px;">
+                            > TARGET TRACKING ENGAGED
+                        </div>
+                    </div>
+                `;
 
-                let radarHTML = `<div class="radar-box"><div class="radar-title"><span>Sat-Link Telemetry</span><span class="radar-status">● LIVE</span></div><div class="ball-history">`;
-                recentBallsArray.forEach((ball, idx) => {
-                    let cssClass = 'ball-marker ' + (ball==='0'?'ball-dot':ball==='4'?'ball-four':ball==='6'?'ball-six':ball==='W'?'ball-wicket':'ball-dot');
-                    let animClass = (idx === recentBallsArray.length - 1) ? 'ball-anim' : '';
-                    radarHTML += `<div class="${cssClass} ${animClass}">${ball}</div>`;
-                });
-                radarHTML += `</div></div>`;
-
-                // Render Live UI
                 scoreBox.innerHTML = `
                     <div style="color: #fff; font-size: 1.1rem; margin-bottom: 5px;">[LIVE UPLINK DECRYPTED]</div>
                     <div style="color: var(--primary); font-size: 1.5rem; font-weight: bold; margin-bottom: 5px;">${cleanScore}</div>
-                    <div style="color: #ff9800; font-size: 0.85rem; margin-bottom: 5px;">STATUS: ${data.status}</div>
+                    <div style="color: #33b5e5; font-size: 1rem; font-weight: bold; margin-bottom: 5px;">BOWLER: ${data.bowler}</div>
+                    <div style="color: #ff9800; font-size: 0.8rem; margin-bottom: 5px;">STATUS: ${data.status}</div>
                     <div style="color: #444; font-size: 0.7rem;">SYNC: ${new Date().toLocaleTimeString()}</div>
                     ${radarHTML}
                 `;
 
-                // Oracle AI Projection Logic based on runs
+                // Oracle AI Projection
                 const currentRuns = parseInt(cleanScore.match(/\d+/) || 0);
                 let tactic = "MAINTAIN HOLD: Wait for further phase alignment.";
                 let oracleColor = "var(--info)";
@@ -402,7 +401,7 @@ async function establishUplink() {
                 `;
 
             } else {
-                scoreBox.innerHTML = `<div style="color: var(--warning);">> ERROR: ENCRYPTION KEY MISMATCH (Data Empty)</div>`;
+                scoreBox.innerHTML = `<div style="color: var(--warning);">> ERROR: DATA ENCRYPTION SYNC FAILED</div>`;
             }
         } catch (err) {
             scoreBox.innerHTML = `<div style="color: var(--danger);">[UPLINK INTERCEPTED] Connection Failed. Retrying...</div>`;
@@ -410,7 +409,6 @@ async function establishUplink() {
         }
     }
 
-    // Ping immediately, then sync every 0.1 seconds
     pingSatellite();
     liveMatchEngine = setInterval(pingSatellite, 20000); 
 }
