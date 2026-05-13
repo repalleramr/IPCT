@@ -30,7 +30,6 @@ let team2Name = "Target B";
 let editingIndex = -1; 
 let liveMatchEngine = null;
 
-// CORRECTED OFFICIAL IPL 2026 SCHEDULE
 const iplMatches = [
     "May 11 (7:30 PM): Punjab Kings vs Delhi Capitals",
     "May 12 (7:30 PM): Gujarat Titans vs Sunrisers Hyderabad",
@@ -54,7 +53,6 @@ const iplMatches = [
     "May 31 (7:30 PM) [Final]: TBD vs TBD"
 ];
 
-// --- APP LOGIC ---
 function switchTab(tabId) {
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
@@ -258,7 +256,7 @@ function calculateTable() {
 }
 
 // ==========================================
-// CREX JSON SATELLITE ENGINE
+// VERCEL SATELLITE ENGINE (STRICT JSON INGESTION)
 // ==========================================
 async function pingVercelSatellite() {
     const aiBox = document.getElementById('aiPredictionBox');
@@ -268,13 +266,11 @@ async function pingVercelSatellite() {
     try {
         if (!matchSelect || matchSelect.selectedIndex === -1) throw new Error("UI ERROR: Cannot read mission target.");
         
-        const selectedText = matchSelect.options[matchSelect.selectedIndex].text;
-        let teamsOnly = selectedText;
-        if (selectedText.includes('): ')) {
-            teamsOnly = selectedText.split('): ')[1].trim(); 
-        }
+        // Pass both the teams and the raw date text for the Countdown Engine
+        const rawTextDate = matchSelect.options[matchSelect.selectedIndex].text;
+        let teamsOnly = rawTextDate.includes('): ') ? rawTextDate.split('): ')[1].trim() : rawTextDate;
 
-        const vercelURL = `https://ipct-v.vercel.app/api/live?teams=${encodeURIComponent(teamsOnly)}&t=${Date.now()}`;
+        const vercelURL = `https://ipct-v.vercel.app/api/live?teams=${encodeURIComponent(teamsOnly)}&time=${encodeURIComponent(rawTextDate)}&t=${Date.now()}`;
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 8000);
 
@@ -290,10 +286,8 @@ async function pingVercelSatellite() {
             const info = data.match_info;
             
             // 1. Compile Radar (Ball History)
-            let radarHTML = `<div style="margin-top:15px;"><div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:6px;">[RECENT OVERS / RADAR]</div><div style="display:flex; gap:6px; flex-wrap:wrap;">`;
-            let ballsArray = info.last_over && info.last_over.length > 0 ? info.last_over : ["-","-","-","-","-","-"];
-            
-            ballsArray.forEach(ball => {
+            let radarHTML = `<div style="margin-top:15px;"><div style="font-size:0.85rem; color:#8b92a5; margin-bottom:6px;">[RECENT OVERS / RADAR]</div><div style="display:flex; gap:6px; flex-wrap:wrap;">`;
+            info.last_over.forEach(ball => {
                 let bg = '#333'; let color = '#fff';
                 if (ball === 'W') { bg = '#ff4d4d'; } 
                 else if (ball === '4') { bg = '#17a2b8'; } 
@@ -302,42 +296,47 @@ async function pingVercelSatellite() {
             });
             radarHTML += `</div></div>`;
 
-            // 2. Compile Score Status
-            let mainScore = info.live_score ? `${info.live_score} <span style="font-size: 0.9rem; color: var(--text-muted);">(${info.overs} ov)</span>` : (info.result || info.status || "Pre-Match Intel");
+            // 2. Compile Match State Badge & Countdown
+            let stateBadgeColor = "#8b92a5";
+            if (info.match_state === "live") stateBadgeColor = "#00e676";
+            if (info.match_state === "completed" || info.match_state === "abandoned") stateBadgeColor = "#ff4d4d";
+            if (info.match_state === "delay" || info.match_state === "countdown") stateBadgeColor = "#ffbb33";
             
-            // 3. Match Details (Toss, Venue)
-            let extraDetails = "";
-            if(info.toss) extraDetails += `<div style="color: #b366ff; font-size: 0.85rem; margin-top: 5px;">> TOSS: ${info.toss}</div>`;
-            if(info.venue) extraDetails += `<div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 3px;">> LOC: ${info.venue}</div>`;
+            let extraDetails = `<div style="display:inline-block; background:#1b1e2b; color:${stateBadgeColor}; border:1px solid ${stateBadgeColor}; padding:2px 6px; border-radius:3px; font-size:0.75rem; font-weight:bold; margin-bottom:8px; text-transform:uppercase;">STATE: ${info.match_state}</div><br>`;
             
-            // 4. Live Players
+            if (info.countdown) extraDetails += `<div style="color: #00e676; font-size: 0.95rem; font-weight:bold; margin-bottom: 8px; border:1px dashed #00e676; padding:5px; display:inline-block;">${info.countdown}</div><br>`;
+            if (info.toss) extraDetails += `<div style="color: #b366ff; font-size: 0.85rem; margin-top: 5px; margin-bottom:5px;">> TOSS: ${info.toss}</div>`;
+            if (info.venue) extraDetails += `<div style="color: #8b92a5; font-size: 0.8rem; margin-top: 3px;">> LOC: ${info.venue}</div>`;
+
+            // 3. Compile Live Players
             let playerDetails = "";
-            if(info.striker || info.bowler) {
-                playerDetails += `<div style="margin-top:10px; border-top: 1px solid var(--border-color); padding-top: 8px;">`;
-                if(info.striker) playerDetails += `<div style="color: #00e676; font-size: 0.85rem;">BAT: ${info.striker}*</div>`;
-                if(info.bowler) playerDetails += `<div style="color: #ff4d4d; font-size: 0.85rem;">BOWL: ${info.bowler}</div>`;
+            if (info.striker || info.bowler) {
+                playerDetails += `<div style="margin-top:10px; border-top: 1px solid #2c3145; padding-top: 8px;">`;
+                if (info.striker) playerDetails += `<div style="color: #00e676; font-size: 0.85rem;">BAT: ${info.striker}*</div>`;
+                if (info.non_striker) playerDetails += `<div style="color: #00e676; font-size: 0.85rem; opacity: 0.7;">BAT: ${info.non_striker}</div>`;
+                if (info.bowler) playerDetails += `<div style="color: #ff4d4d; font-size: 0.85rem; margin-top:3px;">BOWL: ${info.bowler}</div>`;
                 playerDetails += `</div>`;
             }
 
-            // 5. Build ScoreBox UI
+            // 4. Build ScoreBox UI
             scoreBox.innerHTML = `
-                <div style="color: #00e676; font-weight: bold; margin-bottom: 5px; font-size:0.85rem;">[${info.title || 'IPCT TARGET LOCKED'}]</div>
-                <div style="font-size: 1.3rem; font-weight: bold; color: #fff;">${mainScore}</div>
-                <div style="color: #ffbb33; font-size: 0.9rem; margin-top: 5px;">STATUS: ${info.status}</div>
+                <div style="color: #00e676; font-weight: bold; margin-bottom: 8px; font-size:0.85rem;">[${info.title}]</div>
                 ${extraDetails}
+                <div style="font-size: 1.4rem; font-weight: bold; color: #fff;">${info.live_score}</div>
+                <div style="color: #ffbb33; font-size: 0.9rem; margin-top: 5px;">${info.status}</div>
                 ${playerDetails}
                 ${radarHTML}
             `;
             
-            // 6. Build Oracle Box UI
+            // 5. Build Oracle Box UI
             let rrHTML = "";
-            if(info.current_rr) rrHTML += `CRR: ${info.current_rr} | `;
-            if(info.required_rr) rrHTML += `RRR: ${info.required_rr}`;
-            if(info.target) rrHTML += `<br><span style="color:#00e676">TARGET: ${info.target}</span>`;
+            if (info.current_rr) rrHTML += `CRR: ${info.current_rr} | `;
+            if (info.required_rr) rrHTML += `RRR: ${info.required_rr}`;
+            if (info.target) rrHTML += `<br><span style="color:#00e676; font-weight:bold; margin-top:5px; display:inline-block;">TARGET: ${info.target}</span>`;
 
             aiBox.innerHTML = `
-                <div style="color: #b366ff; font-size: 1rem; margin-bottom: 5px; font-weight: bold;">> PROJECTION: ${info.prediction || 'Calculating...'}</div>
-                <div style="color: var(--text-muted); font-size: 0.85rem; margin-top: 5px;">${rrHTML}</div>
+                <div style="color: #b366ff; font-size: 1rem; margin-bottom: 5px; font-weight: bold;">> PROJECTION: ${info.prediction}</div>
+                <div style="color: #8b92a5; font-size: 0.85rem; margin-top: 5px;">${rrHTML}</div>
             `;
 
         } else {
