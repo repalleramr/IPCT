@@ -12,7 +12,18 @@
     --input-bg: #0d1117;
     --mi6-purple: #9c27b0;
 }
-
+.ball-circle {
+  display:inline-block;
+  width:24px;
+  height:24px;
+  line-height:24px;
+  border-radius:50%;
+  text-align:center;
+  margin:2px;
+  color:#fff;
+  font-size:0.8rem;
+  font-weight:bold;
+}
 * { 
     box-sizing: border-box; 
     margin: 0; 
