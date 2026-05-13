@@ -29,7 +29,6 @@ let team1Name = "Target A";
 let team2Name = "Target B";
 let editingIndex = -1; 
 let uplinkInterval = null;
-let liveMatchEngine = null;
 
 // REAL-WORLD IPL 2026 FIXTURES
 const iplMatches = [
@@ -102,7 +101,6 @@ function loadSelectedMatch() {
     } else { team1Name = "Target A"; team2Name = "Target B"; }
     
     if(uplinkInterval) clearInterval(uplinkInterval);
-    if(liveMatchEngine) clearInterval(liveMatchEngine);
     
     const scoreBox = document.getElementById('liveScoreBox');
     const aiBox = document.getElementById('aiPredictionBox');
@@ -111,6 +109,9 @@ function loadSelectedMatch() {
 
     updateDropdowns();
     calculateTable();
+
+    // Start live uplink
+    startLiveUplink(val);
 }
 
 function updateDropdowns() {
@@ -127,14 +128,55 @@ function updateDropdowns() {
     }
 }
 
+// --- LIVE UPLINK FETCH ---
+function startLiveUplink(matchString) {
+    if(!matchString) return;
+    const scoreBox = document.getElementById('liveScoreBox');
+    const aiBox = document.getElementById('aiPredictionBox');
+    const ballsBox = document.getElementById('lastBallsBox');
+
+    async function fetchLive() {
+        try {
+            const resp = await fetch(`https://your-vercel-app.vercel.app/api/live?teams=${encodeURIComponent(matchString)}`);
+            const data = await resp.json();
+            if(data && data.match_info) {
+                scoreBox.innerHTML = data.match_info.live_score || "No Score";
+                aiBox.innerHTML = data.match_info.prediction || "No Prediction";
+                renderBalls(data.match_info.last_balls || []);
+            }
+        } catch (err) {
+            scoreBox.innerHTML = "Error uplink...";
+            aiBox.innerHTML = "Oracle offline...";
+        }
+    }
+
+    fetchLive();
+    uplinkInterval = setInterval(fetchLive, 20000); // every 20s
+}
+
+// --- BALL RENDERING ---
+function renderBalls(balls) {
+    const ballsBox = document.getElementById('lastBallsBox');
+    if(!ballsBox) return;
+    ballsBox.innerHTML = "";
+    balls.forEach(b => {
+        let circle = document.createElement('span');
+        circle.classList.add('ball-circle');
+        if(b === 'W') circle.style.backgroundColor = 'red';
+        else if(b === '4' || b === '6') circle.style.backgroundColor = 'green';
+        else circle.style.backgroundColor = 'darkgrey';
+        circle.textContent = b;
+        ballsBox.appendChild(circle);
+    });
+}
+
 // --- SECURE BOOTSTRAP INIT ---
 function initializeApp() {
-    initMatchList(); // ensure matches are loaded
+    initMatchList();
     const ms = document.getElementById('matchSelect');
     if(ms) ms.onchange = loadSelectedMatch;
 }
 
-// Wait for DOM
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeApp);
 } else {
