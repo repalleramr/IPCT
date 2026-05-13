@@ -32,7 +32,6 @@ let editingIndex = -1;
 let uplinkInterval = null;
 let liveMatchEngine = null;
 
-// REAL-WORLD IPL 2026 FIXTURES
 const iplMatches = [
     "May 11 (7:30 PM): Punjab Kings vs Delhi Capitals",
     "May 12 (7:30 PM): Gujarat Titans vs Sunrisers Hyderabad",
@@ -60,8 +59,12 @@ const iplMatches = [
 function switchTab(tabId) {
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-    document.getElementById('btn-' + tabId).classList.add('active');
-    document.getElementById(tabId + 'Tab').classList.add('active');
+    
+    const btn = document.getElementById('btn-' + tabId);
+    const tab = document.getElementById(tabId + 'Tab');
+    
+    if(btn) btn.classList.add('active');
+    if(tab) tab.classList.add('active');
 }
 
 function initMatchList() {
@@ -334,7 +337,6 @@ function renderFancyTable() {
     saveState();
 }
 
-// --- TAB 3: VERCEL SATELLITE UPLINK ENGINE ---
 const UPLINK_API = 'https://ipct-v.vercel.app/api/live';
 
 async function establishUplink() {
@@ -362,13 +364,13 @@ async function establishUplink() {
                 const rawScore = data.live_score;
 
                 const scoreParts = rawScore.split('|');
-                const cleanScore = scoreParts[1] ? scoreParts[1].trim() : "Data Encrypted";
+                const cleanScore = scoreParts[1] ? scoreParts[1].trim() : rawScore;
                 
                 let radarHTML = `
-                    <div class="radar-box">
-                        <div class="radar-title">
+                    <div class="radar-box" style="margin-top:10px; padding:10px; border:1px solid #33b5e5; border-radius:5px;">
+                        <div class="radar-title" style="display:flex; justify-content:space-between; color:#33b5e5; font-weight:bold;">
                             <span>Sat-Link Telemetry</span>
-                            <span class="radar-status">● LIVE</span>
+                            <span class="radar-status" style="color:red;">● LIVE</span>
                         </div>
                         <div style="color: var(--text-muted); font-size: 0.85rem; margin-top: 8px;">
                             > TARGET TRACKING ENGAGED
@@ -413,8 +415,53 @@ async function establishUplink() {
     liveMatchEngine = setInterval(pingSatellite, 20000); 
 }
 
-// --- BOOTSTRAP INIT ---
+// --- BOOTSTRAP INIT & INJECT BROWSER ROOM ---
 initMatchList();
+
+function initBrowserRadar() {
+    if(document.getElementById('browserTab')) return; // Prevent duplicates
+
+    // 1. Inject the Web Radar Tab Button
+    const firstBtn = document.querySelector('.tab-btn');
+    if(firstBtn) {
+        const btnContainer = firstBtn.parentElement;
+        const newBtn = document.createElement('button');
+        newBtn.className = 'tab-btn';
+        newBtn.id = 'btn-browser';
+        newBtn.innerText = 'WEB RADAR';
+        newBtn.onclick = () => switchTab('browser');
+        btnContainer.appendChild(newBtn);
+    }
+
+    // 2. Inject the Web Radar Content Tab
+    const firstContent = document.querySelector('.tab-content');
+    if(firstContent) {
+        const contentContainer = firstContent.parentElement;
+        const newTab = document.createElement('div');
+        newTab.id = 'browserTab';
+        newTab.className = 'tab-content';
+        newTab.innerHTML = `
+            <div style="background: var(--surface); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #00e676;">
+                <div style="color: #fff; font-size: 1.1rem; margin-bottom: 10px; font-weight:bold;">[SECURE WEB RADAR]</div>
+                <div style="color: #aaa; font-size: 0.85rem; margin-bottom: 15px;">Paste any live line URL (like CREX or LineGuru web) below to monitor 6/10/15/20 over rates ball-by-ball.</div>
+                
+                <input type="text" id="radarUrlInput" value="https://crex.live/" style="width: 100%; padding: 12px; border-radius: 5px; border: 1px solid #444; background: #111; color: #00e676; margin-bottom: 10px; font-size: 1rem;">
+                
+                <button onclick="document.getElementById('radarFrame').src = document.getElementById('radarUrlInput').value" style="width: 100%; padding: 15px; background: #00e676; color: #000; font-weight: bold; border: none; border-radius: 5px; margin-bottom: 15px; cursor:pointer; font-size: 1rem;">ENGAGE RADAR</button>
+                
+                <div style="width: 100%; height: 600px; background: #000; border: 1px solid #333; border-radius: 5px; overflow: hidden;">
+                    <iframe id="radarFrame" src="https://crex.live/" style="width: 100%; height: 100%; border: none;"></iframe>
+                </div>
+            </div>
+        `;
+        contentContainer.appendChild(newTab);
+    }
+}
+
+// Inject the browser room smoothly on boot
+document.addEventListener('DOMContentLoaded', initBrowserRadar);
+setTimeout(initBrowserRadar, 1500);
+
 try {
     const savedData = safeGet('mi6_ledger_data');
     if (savedData) {
