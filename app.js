@@ -32,7 +32,7 @@ let editingIndex = -1;
 let uplinkInterval = null;
 let liveMatchEngine = null;
 
-// CORRECTED REAL-WORLD IPL 2026 SCHEDULE
+// REAL-WORLD IPL 2026 FIXTURES
 const iplMatches = [
     "May 11 (7:30 PM): Punjab Kings vs Delhi Capitals",
     "May 12 (7:30 PM): Gujarat Titans vs Sunrisers Hyderabad",
