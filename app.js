@@ -20,76 +20,307 @@ function switchTab(tabId) {
 
 function initMatchList() {
     const select = document.getElementById('matchSelect');
-    iplMatches.forEach(m => { let o = document.createElement('option'); o.value = m; o.innerHTML = m; select.appendChild(o); });
+
+    iplMatches.forEach(m => {
+
+        let o = document.createElement('option');
+
+        o.value = m;
+
+        o.innerHTML = m;
+
+        select.appendChild(o);
+    });
 }
 
 function loadSelectedMatch() {
-    const val = document.getElementById('matchSelect').value;
-    const teamsPart = val.split(': ')[1];
-    const teams = teamsPart.split(' vs ');
-    team1Name = teams[0].trim(); team2Name = teams[1].trim();
+
+    const val =
+        document.getElementById('matchSelect').value;
+
+    const teamsPart =
+        val.split(': ')[1];
+
+    const teams =
+        teamsPart.split(' vs ');
+
+    team1Name =
+        teams[0].trim();
+
+    team2Name =
+        teams[1].trim();
+
     updateDropdowns();
 }
 
 function updateDropdowns() {
-    const w = document.getElementById('finalWinner');
-    w.innerHTML = `<option value="">-- Pending --</option><option value="${team1Name}">${team1Name}</option><option value="${team2Name}">${team2Name}</option>`;
-    const e = document.getElementById('entryTeam');
-    e.innerHTML = `<option value="${team1Name}">${team1Name}</option><option value="${team2Name}">${team2Name}</option>`;
+
+    const w =
+        document.getElementById('finalWinner');
+
+    w.innerHTML =
+`
+<option value="">-- Pending --</option>
+<option value="${team1Name}">
+${team1Name}
+</option>
+<option value="${team2Name}">
+${team2Name}
+</option>
+`;
+
+    const e =
+        document.getElementById('entryTeam');
+
+    e.innerHTML =
+`
+<option value="${team1Name}">
+${team1Name}
+</option>
+
+<option value="${team2Name}">
+${team2Name}
+</option>
+`;
 }
 
 function addBet() {
-    const team = document.getElementById('entryTeam').value;
-    const action = document.getElementById('entryAction').value;
-    const rate = parseFloat(document.getElementById('entryRate').value);
-    const stake = parseFloat(document.getElementById('entryStake').value);
-    if (isNaN(rate) || isNaN(stake)) return;
-    let favPL = (action === 'Play') ? stake * (rate / 100) : -(stake * (rate / 100));
-    let oppPL = (action === 'Play') ? -stake : stake;
-    bets.push({ team, action, rate, stake, favPL, oppPL });
+
+    const team =
+        document.getElementById('entryTeam').value;
+
+    const action =
+        document.getElementById('entryAction').value;
+
+    const rate =
+        parseFloat(
+            document.getElementById('entryRate').value
+        );
+
+    const stake =
+        parseFloat(
+            document.getElementById('entryStake').value
+        );
+
+    if (
+        isNaN(rate) ||
+        isNaN(stake)
+    ) return;
+
+    let favPL =
+        (action === 'Play')
+        ? stake * (rate / 100)
+        : -(stake * (rate / 100));
+
+    let oppPL =
+        (action === 'Play')
+        ? -stake
+        : stake;
+
+    bets.push({
+
+        team,
+        action,
+        rate,
+        stake,
+        favPL,
+        oppPL
+    });
+
     calculateTable();
 }
 
 function calculateTable() {
-    const tbody = document.getElementById('betTableBody');
-    const winner = document.getElementById('finalWinner').value;
-    tbody.innerHTML = ''; let total = 0;
+
+    const tbody =
+        document.getElementById('betTableBody');
+
+    const winner =
+        document.getElementById('finalWinner').value;
+
+    tbody.innerHTML = '';
+
+    let total = 0;
+
     bets.forEach((b, i) => {
-        let pnl = (winner === b.team) ? b.favPL : b.oppPL;
-        if (winner) total += pnl;
-        tbody.innerHTML += `<tr><td>${i+1}</td><td>${b.team}</td><td>${b.action}</td><td>${b.rate}</td><td>${b.stake}</td><td>${b.favPL.toFixed(0)}</td><td>${b.oppPL.toFixed(0)}</td><td>${winner ? pnl.toFixed(0) : '-'}</td><td><button onclick="bets.splice(${i},1);calculateTable()">X</button></td></tr>`;
+
+        let pnl =
+            (winner === b.team)
+            ? b.favPL
+            : b.oppPL;
+
+        if (winner)
+            total += pnl;
+
+        tbody.innerHTML +=
+`
+<tr>
+
+<td>${i+1}</td>
+
+<td>${b.team}</td>
+
+<td>${b.action}</td>
+
+<td>${b.rate}</td>
+
+<td>${b.stake}</td>
+
+<td>${b.favPL.toFixed(0)}</td>
+
+<td>${b.oppPL.toFixed(0)}</td>
+
+<td>
+${winner ? pnl.toFixed(0) : '-'}
+</td>
+
+<td>
+<button onclick="bets.splice(${i},1);calculateTable()">
+X
+</button>
+</td>
+
+</tr>
+`;
     });
-    document.getElementById('totalNetProfit').innerText = total.toFixed(2);
+
+    document.getElementById(
+        'totalNetProfit'
+    ).innerText =
+        total.toFixed(2);
 }
 
-// THE SATELLITE ENGINE
-async function establishUplink() {
-    const scoreBox = document.getElementById('liveScoreBox');
-    const aiBox = document.getElementById('aiPredictionBox');
-    const val = document.getElementById('matchSelect').value;
-    
-    // Extract team string: "Punjab Kings vs Delhi Capitals"
-    const teamString = val.split(': ')[1].trim();
+// =========================================
+// LIVE SATELLITE ENGINE
+// =========================================
 
-    scoreBox.innerHTML = "> PINGING VERCEL SATELLITE...";
-    aiBox.innerHTML = "> BYPASSING CACHE...";
+async function establishUplink() {
+
+    const scoreBox =
+        document.getElementById(
+            'liveScoreBox'
+        );
+
+    const aiBox =
+        document.getElementById(
+            'aiPredictionBox'
+        );
+
+    const val =
+        document.getElementById(
+            'matchSelect'
+        ).value;
+
+    const teamString =
+        val.split(': ')[1].trim();
+
+    scoreBox.innerHTML =
+        "> PINGING VERCEL SATELLITE...";
+
+    aiBox.innerHTML =
+        "> BYPASSING CACHE...";
 
     try {
-        const url = `https://ipct-v.vercel.app/api/live?teams=${encodeURIComponent(teamString)}&cache=${Date.now()}`;
-        const res = await fetch(url);
-        const data = await res.json();
 
-        if (data.success) {
-            const info = data.match_info;
-            scoreBox.innerHTML = `<b>[${info.title}]</b><br>${info.live_score}<br><small>${info.status}</small>`;
-            aiBox.innerHTML = `> ${info.prediction}`;
-        } else {
-            scoreBox.innerHTML = `> SATELLITE ERROR: ${data.error}`;
+        const url =
+`https://ipct-v.vercel.app/api/live?teams=${encodeURIComponent(teamString)}&cache=${Date.now()}`;
+
+        const res =
+            await fetch(url);
+
+        const data =
+            await res.json();
+
+        if (
+            data.success &&
+            data.match_info
+        ) {
+
+            const info =
+                data.match_info;
+
+            scoreBox.innerHTML =
+`
+
+<b>
+[${info.title || 'IPL LIVE INTEL'}]
+</b>
+
+<br><br>
+
+<b>STATUS:</b>
+<br>
+${info.status || 'Unavailable'}
+
+<br><br>
+
+<b>SCORE:</b>
+<br>
+${info.live_score || 'Awaiting Play'}
+
+<br><br>
+
+<b>OVERS:</b>
+<br>
+${info.overs || '-'}
+
+<br><br>
+
+<b>BATSMAN:</b>
+<br>
+${info.striker || 'Unavailable'}
+
+<br><br>
+
+<b>BOWLER:</b>
+<br>
+${info.bowler || 'Unavailable'}
+
+<br><br>
+
+<b>SOURCE:</b>
+<br>
+${info.source || 'Unknown'}
+
+`;
+
+            aiBox.innerHTML =
+`
+
+> ${info.prediction || 'Balanced'}
+
+<br><br>
+
+MATCH STATE:
+<br>
+
+${info.match_state || 'Unknown'}
+
+`;
         }
-    } catch (e) {
-        scoreBox.innerHTML = `> UPLINK FAILED: Check Internet.`;
+        else {
+
+            scoreBox.innerHTML =
+`
+> SATELLITE ERROR:
+${data.error || 'Unknown Error'}
+`;
+
+            aiBox.innerHTML =
+                '> ORACLE OFFLINE';
+        }
+
+    }
+    catch (e) {
+
+        scoreBox.innerHTML =
+            '> UPLINK FAILED: Check Internet.';
+
+        aiBox.innerHTML =
+            '> NETWORK FAILURE';
     }
 }
 
 initMatchList();
+
 loadSelectedMatch();
