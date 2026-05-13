@@ -339,3 +339,77 @@ async function establishUplink() {
         console.error("IPCT Uplink Error:", err);
     }
 }
+// ==========================================
+// SATELLITE UPLINK ENGINE (DIAGNOSTIC MODE)
+// ==========================================
+
+async function establishUplink() {
+    const aiBox = document.getElementById('aiPredictionBox');
+    const scoreBox = document.getElementById('liveScoreBox');
+    const lastBallsBox = document.getElementById('lastBallsBox');
+    const matchSelect = document.getElementById('matchSelect');
+
+    aiBox.innerHTML = "> BYPASSING CACHE...";
+    scoreBox.innerHTML = "> PINGING SERVER...";
+    lastBallsBox.innerHTML = "";
+
+    const selectedText = matchSelect.options[matchSelect.selectedIndex].text;
+
+    let teamsOnly = selectedText;
+    if (selectedText.includes('): ')) {
+        teamsOnly = selectedText.split('): ')[1].trim(); 
+    }
+
+    try {
+        // ADDED TIMESTAMP (&t=...) TO FORCE BYPASS ANDROID PWA CACHE
+        const vercelURL = `https://ipct-v.vercel.app/api/live?teams=${encodeURIComponent(teamsOnly)}&t=${Date.now()}`;
+        
+        aiBox.innerHTML = "> SATELLITE REQUEST SENT...";
+
+        const response = await fetch(vercelURL);
+        
+        if (!response.ok) {
+            throw new Error(`Vercel HTTP Error: ${response.status}`);
+        }
+
+        // Read the raw text first to prevent silent crashes
+        const rawText = await response.text(); 
+        
+        try {
+            const data = JSON.parse(rawText);
+
+            if (data.success) {
+                const info = data.match_info;
+                scoreBox.innerHTML = `
+                    <div style="color: var(--primary); font-weight: bold; margin-bottom: 5px; font-size:0.85rem;">[${info.title}]</div>
+                    <div style="font-size: 1.3rem; font-weight: bold; color: #fff;">${info.live_score}</div>
+                    <div style="color: var(--warning); font-size: 0.9rem; margin-top: 5px;">${info.status}</div>
+                    <div style="color: var(--info); font-size: 0.95rem; margin-top: 5px; font-weight: bold;">BOWLER: ${info.bowler}</div>
+                `;
+                aiBox.innerHTML = `> ${info.prediction}`;
+
+                info.last_balls.forEach(ball => {
+                    let span = document.createElement('span');
+                    span.className = 'ball';
+                    span.innerText = ball;
+                    if (ball === 'W') span.classList.add('w');
+                    else if (ball === '4') span.classList.add('four');
+                    else if (ball === '6') span.classList.add('six');
+                    lastBallsBox.appendChild(span);
+                });
+            } else {
+                aiBox.innerHTML = "> SATELLITE REJECTED TARGET.";
+                scoreBox.innerHTML = `> ERROR: ${data.error || "Unknown Data Error"}`;
+            }
+        } catch (jsonErr) {
+            // If Vercel timed out and sent HTML instead of JSON, print it to the screen
+            scoreBox.innerHTML = `> VERCEL TIMEOUT / CRASH DETECTED`;
+            aiBox.innerHTML = `> Raw Output: ${rawText.substring(0, 60)}...`;
+        }
+
+    } catch (err) {
+        // If the phone itself blocked the connection (CORS, offline, ad-blocker)
+        scoreBox.innerHTML = `> CONNECTION BLOCKED`;
+        aiBox.innerHTML = `> ERROR: ${err.message}`;
+    }
+}
