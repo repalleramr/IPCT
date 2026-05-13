@@ -133,7 +133,6 @@ function startLiveUplink(matchString) {
     if(!matchString) return;
     const scoreBox = document.getElementById('liveScoreBox');
     const aiBox = document.getElementById('aiPredictionBox');
-    const ballsBox = document.getElementById('lastBallsBox');
 
     async function fetchLive() {
         try {
@@ -170,9 +169,26 @@ function renderBalls(balls) {
     });
 }
 
+// --- WEB RADAR (iframe injection) ---
+function initBrowserRadar() {
+    const radarInput = document.getElementById('radarUrlInput');
+    const radarBtn = document.getElementById('radarLoadBtn');
+    const radarBox = document.getElementById('radarFrameBox');
+
+    if(radarBtn && radarInput && radarBox) {
+        radarBtn.onclick = () => {
+            const url = radarInput.value.trim();
+            if(url) {
+                radarBox.innerHTML = `<iframe src="${url}" style="width:100%;height:100%;border:none;"></iframe>`;
+            }
+        };
+    }
+}
+
 // --- SECURE BOOTSTRAP INIT ---
 function initializeApp() {
     initMatchList();
+    initBrowserRadar();
     const ms = document.getElementById('matchSelect');
     if(ms) ms.onchange = loadSelectedMatch;
 }
