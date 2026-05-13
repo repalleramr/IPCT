@@ -155,13 +155,19 @@ th { background-color: #1f252e; color: var(--text-muted); text-transform: upperc
 .ai-panel { border-color: var(--mi6-purple); }
 
 /* Ball Rendering */
-.ball-history { display:flex; gap:5px; margin-top:10px; }
-.ball-marker {
-  width:30px; height:30px; border-radius:50%;
-  display:flex; align-items:center; justify-content:center;
-  font-weight:bold; font-size:0.9rem;
-  background:#333; color:white;
-  box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+.ball-history { 
+    display: flex; gap: 6px; margin-top: 15px; margin-bottom: 15px; 
+    overflow-x: auto; padding-bottom: 5px; 
 }
-.ball-dot { background:#555; color:#ccc; }
-.ball-four { background: var(--info); color:#
+.ball-marker {
+    min-width: 30px; height: 30px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: bold; font-size: 0.85rem;
+    background: #222; color: #ffffff;
+    border: 1px solid #444;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+}
+.ball-dot { background: #555; color: #ccc; border-color: #666; }
+.ball-four { background: var(--primary); color: #000; border-color: var(--primary-dark); }
+.ball-six { background: var(--primary-dark); color: #000; border-color: #000; }
+.ball-wicket { background: var(--danger); color: #fff; border-color: #cc0000; }
