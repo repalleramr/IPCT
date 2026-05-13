@@ -1,29 +1,116 @@
 // MI6 System Booting...
-let bets = []; let fancyBets = [];
-let team1Name = "Target A"; let team2Name = "Target B";
-let editingIndex = -1; let liveMatchEngine = null;
+let bets = [];
+let fancyBets = [];
+
+let team1Name = "Target A";
+let team2Name = "Target B";
+
+let editingIndex = -1;
+let liveMatchEngine = null;
 
 const iplMatches = [
+
     "May 11 (7:30 PM): Punjab Kings vs Delhi Capitals",
+
     "May 12 (7:30 PM): Gujarat Titans vs Sunrisers Hyderabad",
+
     "May 13 (7:30 PM): Royal Challengers Bengaluru vs Kolkata Knight Riders",
+
     "May 14 (7:30 PM): Punjab Kings vs Mumbai Indians",
+
     "May 15 (7:30 PM): Lucknow Super Giants vs Chennai Super Kings"
 ];
 
-function switchTab(tabId) {
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    document.getElementById('btn-' + tabId).classList.add('active');
-    document.getElementById(tabId + 'Tab').classList.add('active');
+/* =========================================
+   LOCAL STORAGE
+   ========================================= */
+
+function saveData() {
+
+    localStorage.setItem(
+        'ipct_bets',
+        JSON.stringify(bets)
+    );
+
+    localStorage.setItem(
+        'ipct_fancy',
+        JSON.stringify(fancyBets)
+    );
 }
 
+function loadData() {
+
+    const savedBets =
+        localStorage.getItem(
+            'ipct_bets'
+        );
+
+    const savedFancy =
+        localStorage.getItem(
+            'ipct_fancy'
+        );
+
+    if (savedBets) {
+
+        bets =
+            JSON.parse(savedBets);
+    }
+
+    if (savedFancy) {
+
+        fancyBets =
+            JSON.parse(savedFancy);
+    }
+}
+
+/* =========================================
+   TAB SWITCH
+   ========================================= */
+
+function switchTab(tabId) {
+
+    document
+        .querySelectorAll('.tab-btn')
+        .forEach(btn =>
+            btn.classList.remove('active')
+        );
+
+    document
+        .querySelectorAll('.tab-content')
+        .forEach(c =>
+            c.classList.remove('active')
+        );
+
+    document
+        .getElementById(
+            'btn-' + tabId
+        )
+        .classList.add('active');
+
+    document
+        .getElementById(
+            tabId + 'Tab'
+        )
+        .classList.add('active');
+}
+
+/* =========================================
+   MATCH LIST
+   ========================================= */
+
 function initMatchList() {
-    const select = document.getElementById('matchSelect');
+
+    const select =
+        document.getElementById(
+            'matchSelect'
+        );
 
     iplMatches.forEach(m => {
 
-        let o = document.createElement('option');
+        let o =
+            document.createElement(
+                'option'
+            );
 
         o.value = m;
 
@@ -33,10 +120,16 @@ function initMatchList() {
     });
 }
 
+/* =========================================
+   LOAD MATCH
+   ========================================= */
+
 function loadSelectedMatch() {
 
     const val =
-        document.getElementById('matchSelect').value;
+        document.getElementById(
+            'matchSelect'
+        ).value;
 
     const teamsPart =
         val.split(': ')[1];
@@ -53,24 +146,36 @@ function loadSelectedMatch() {
     updateDropdowns();
 }
 
+/* =========================================
+   UPDATE DROPDOWNS
+   ========================================= */
+
 function updateDropdowns() {
 
     const w =
-        document.getElementById('finalWinner');
+        document.getElementById(
+            'finalWinner'
+        );
 
     w.innerHTML =
 `
-<option value="">-- Pending --</option>
+<option value="">
+-- Pending --
+</option>
+
 <option value="${team1Name}">
 ${team1Name}
 </option>
+
 <option value="${team2Name}">
 ${team2Name}
 </option>
 `;
 
     const e =
-        document.getElementById('entryTeam');
+        document.getElementById(
+            'entryTeam'
+        );
 
     e.innerHTML =
 `
@@ -84,22 +189,36 @@ ${team2Name}
 `;
 }
 
+/* =========================================
+   ADD BET
+   ========================================= */
+
 function addBet() {
 
     const team =
-        document.getElementById('entryTeam').value;
+        document.getElementById(
+            'entryTeam'
+        ).value;
 
     const action =
-        document.getElementById('entryAction').value;
+        document.getElementById(
+            'entryAction'
+        ).value;
 
     const rate =
         parseFloat(
-            document.getElementById('entryRate').value
+
+            document.getElementById(
+                'entryRate'
+            ).value
         );
 
     const stake =
         parseFloat(
-            document.getElementById('entryStake').value
+
+            document.getElementById(
+                'entryStake'
+            ).value
         );
 
     if (
@@ -127,16 +246,26 @@ function addBet() {
         oppPL
     });
 
+    saveData();
+
     calculateTable();
 }
+
+/* =========================================
+   CALCULATE TABLE
+   ========================================= */
 
 function calculateTable() {
 
     const tbody =
-        document.getElementById('betTableBody');
+        document.getElementById(
+            'betTableBody'
+        );
 
     const winner =
-        document.getElementById('finalWinner').value;
+        document.getElementById(
+            'finalWinner'
+        ).value;
 
     tbody.innerHTML = '';
 
@@ -175,9 +304,14 @@ ${winner ? pnl.toFixed(0) : '-'}
 </td>
 
 <td>
-<button onclick="bets.splice(${i},1);calculateTable()">
+
+<button
+onclick="bets.splice(${i},1);saveData();calculateTable()">
+
 X
+
 </button>
+
 </td>
 
 </tr>
@@ -190,9 +324,9 @@ X
         total.toFixed(2);
 }
 
-// =========================================
-// LIVE SATELLITE ENGINE
-// =========================================
+/* =========================================
+   LIVE SATELLITE ENGINE
+   ========================================= */
 
 async function establishUplink() {
 
@@ -272,9 +406,33 @@ ${info.striker || 'Unavailable'}
 
 <br><br>
 
+<b>NON-STRIKER:</b>
+<br>
+${info.non_striker || 'Unavailable'}
+
+<br><br>
+
 <b>BOWLER:</b>
 <br>
 ${info.bowler || 'Unavailable'}
+
+<br><br>
+
+<b>TOSS:</b>
+<br>
+${info.toss || 'Pending'}
+
+<br><br>
+
+<b>RESULT:</b>
+<br>
+${info.result || 'Match In Progress'}
+
+<br><br>
+
+<b>VENUE:</b>
+<br>
+${info.venue || 'Unavailable'}
 
 <br><br>
 
@@ -295,6 +453,22 @@ MATCH STATE:
 <br>
 
 ${info.match_state || 'Unknown'}
+
+<br><br>
+
+LAST BALL:
+<br>
+
+${info.last_ball || '-'}
+
+<br><br>
+
+LAST OVER:
+<br>
+
+${info.last_over && info.last_over.length
+? info.last_over.join(' ')
+: '-'}
 
 `;
         }
@@ -321,6 +495,14 @@ ${data.error || 'Unknown Error'}
     }
 }
 
+/* =========================================
+   INIT
+   ========================================= */
+
+loadData();
+
 initMatchList();
 
 loadSelectedMatch();
+
+calculateTable();
