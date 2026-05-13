@@ -23,7 +23,6 @@ function safeGet(key) {
     return memoryStorage[key] || null;
 }
 
-// --- GLOBAL VARIABLES ---
 let bets = [];
 let fancyBets = []; 
 let team1Name = "Target A";
@@ -72,9 +71,7 @@ function initMatchList() {
     const select = document.getElementById('matchSelect');
     if(!select) return; 
     
-    // Clear existing options except the default
     select.innerHTML = '<option value="">-- Select Active Mission --</option>';
-    
     iplMatches.forEach(match => {
         let opt = document.createElement('option');
         opt.value = match;
@@ -126,6 +123,9 @@ function loadSelectedMatch() {
 
     updateDropdowns();
     calculateTable();
+
+    // Start live uplink
+    startLiveUplink(val);
 }
 
 function updateDropdowns() {
@@ -149,354 +149,30 @@ function updateDropdowns() {
     updateLivePreview();
 }
 
-function calculatePreview(action, rate, stake) {
-    let favPL = 0, oppPL = 0;
-    if (!rate || !stake) return { favPL, oppPL };
-    if (action === 'Play') { favPL = stake * (rate / 100); oppPL = -stake; } 
-    else if (action === 'Eat') { favPL = -(stake * (rate / 100)); oppPL = stake; }
-    return { favPL, oppPL };
-}
-
-function getBaseExposure() {
-    let t1Base = 0, t2Base = 0;
-    bets.forEach((b, index) => {
-        if (index === editingIndex) return; 
-        if (b.team === team1Name) { t1Base += b.favPL; t2Base += b.oppPL; } 
-        else { t2Base += b.favPL; t1Base += b.oppPL; }
-    });
-    return { t1Base, t2Base };
-}
-
-function updateLivePreview() {
-    const favTeam = document.getElementById('entryTeam') ? document.getElementById('entryTeam').value : null;
-    if(!favTeam) return;
-    
-    const action = document.getElementById('entryAction').value;
-    const rate = parseFloat(document.getElementById('entryRate').value) || 0;
-    const stake = parseFloat(document.getElementById('entryStake').value) || 0;
-
-    const { favPL, oppPL } = calculatePreview(action, rate, stake);
-    const { t1Base, t2Base } = getBaseExposure();
-
-    let t1Preview = t1Base + (favTeam === team1Name ? favPL : oppPL);
-    let t2Preview = t2Base + (favTeam === team1Name ? oppPL : favPL);
-
-    if(stake === 0 || rate === 0) { t1Preview = t1Base; t2Preview = t2Base; }
-
-    const t1El = document.getElementById('previewTeam1');
-    const t2El = document.getElementById('previewTeam2');
-
-    if(t1El) {
-        t1El.innerText = `${team1Name}: ${t1Preview.toFixed(2)}`;
-        t1El.className = t1Preview > 0 ? 'positive' : (t1Preview < 0 ? 'negative' : 'neutral');
-    }
-    if(t2El) {
-        t2El.innerText = `${team2Name}: ${t2Preview.toFixed(2)}`;
-        t2El.className = t2Preview > 0 ? 'positive' : (t2Preview < 0 ? 'negative' : 'neutral');
-    }
-}
-
-function addBet() {
-    const team = document.getElementById('entryTeam').value;
-    const action = document.getElementById('entryAction').value;
-    const rate = parseFloat(document.getElementById('entryRate').value);
-    const stake = parseFloat(document.getElementById('entryStake').value);
-
-    if (!team || isNaN(rate) || isNaN(stake)) { alert("Mission Control: Required Intel Missing."); return; }
-    const { favPL, oppPL } = calculatePreview(action, rate, stake);
-    
-    if (editingIndex !== -1) {
-        bets[editingIndex] = { team, action, rate, stake, favPL, oppPL };
-        editingIndex = -1; 
-        document.getElementById('addBetBtn').innerText = "Execute Directive"; 
-    } else { bets.push({ team, action, rate, stake, favPL, oppPL }); }
-
-    document.getElementById('entryRate').value = '';
-    document.getElementById('entryStake').value = '';
-    updateLivePreview();
-    calculateTable();
-}
-
-function editBet(index) {
-    const bet = bets[index];
-    document.getElementById('entryTeam').value = bet.team;
-    document.getElementById('entryAction').value = bet.action;
-    document.getElementById('entryRate').value = bet.rate;
-    document.getElementById('entryStake').value = bet.stake;
-    editingIndex = index;
-    document.getElementById('addBetBtn').innerText = "Update Directive";
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    updateLivePreview();
-}
-
-function deleteBet(index) {
-    if(confirm("Scrub this entry from the ledger?")) {
-        bets.splice(index, 1);
-        if (editingIndex === index) {
-            editingIndex = -1;
-            document.getElementById('addBetBtn').innerText = "Execute Directive";
-            document.getElementById('entryRate').value = '';
-            document.getElementById('entryStake').value = '';
-        } else if (editingIndex > index) { editingIndex--; }
-        updateLivePreview();
-        calculateTable();
-    }
-}
-
-function clearBets() {
-    if(confirm("Confirm Protocol Zero: Burn all CORE data for this mission?")) {
-        bets = []; editingIndex = -1;
-        document.getElementById('addBetBtn').innerText = "Execute Directive";
-        document.getElementById('finalWinner').value = "";
-        updateLivePreview(); calculateTable();
-    }
-}
-
-function formatMoney(num) {
-    let str = num.toFixed(2);
-    if (num > 0) return `<span class="positive">+${str}</span>`;
-    if (num < 0) return `<span class="negative">${str}</span>`;
-    return `<span class="neutral">${str}</span>`;
-}
-
-function calculateTable() {
-    const tbody = document.getElementById('betTableBody');
-    if(!tbody) return;
-    const finalWinner = document.getElementById('finalWinner').value;
-    tbody.innerHTML = '';
-    let runningTotal = 0;
-
-    bets.forEach((bet, index) => {
-        let finalPL = 0, isFinal = false;
-        if (finalWinner) {
-            isFinal = true;
-            finalPL = (finalWinner === bet.team) ? bet.favPL : bet.oppPL;
-            runningTotal += finalPL;
-        }
-
-        const tr = document.createElement('tr');
-        if (index === editingIndex) {
-            tr.style.backgroundColor = "rgba(255, 187, 51, 0.1)";
-            tr.style.borderLeft = "4px solid var(--warning)";
-        }
-
-        tr.innerHTML = `
-            <td>${index + 1}</td>
-            <td>${bet.team}</td>
-            <td>${bet.action}</td>
-            <td>${bet.rate}</td>
-            <td>${bet.stake}</td>
-            <td>${formatMoney(bet.favPL)}</td>
-            <td>${formatMoney(bet.oppPL)}</td>
-            <td>${isFinal ? formatMoney(finalPL) : '-'}</td>
-            <td class="action-btns"><button class="btn-warning" onclick="editBet(${index})">Edit</button><button class="btn-danger" onclick="deleteBet(${index})">Burn</button></td>
-        `;
-        tbody.appendChild(tr);
-    });
-    document.getElementById('totalNetProfit').innerHTML = formatMoney(runningTotal);
-    saveState();
-}
-
-function addFancyBet() {
-    const phase = document.getElementById('fancyPhase').value;
-    const action = document.getElementById('fancyAction').value;
-    const line = parseFloat(document.getElementById('fancyLine').value);
-    const stake = parseFloat(document.getElementById('fancyStake').value);
-
-    if(!phase || isNaN(line) || isNaN(stake)) { alert("Phase parameters incomplete."); return; }
-    fancyBets.push({ phase, action, line, stake, status: 'Pending', pnl: 0 });
-    document.getElementById('fancyLine').value = '';
-    document.getElementById('fancyStake').value = '';
-    renderFancyTable();
-}
-
-function resolvePhase() {
-    const phaseToResolve = document.getElementById('resolvePhase').value;
-    const actualStr = document.getElementById('resolveScore').value;
-    
-    if(!actualStr) { alert("Please enter the final runs scored."); return; }
-    const actualScore = parseFloat(actualStr);
-    let resolvedCount = 0;
-
-    fancyBets.forEach(bet => {
-        if(bet.phase === phaseToResolve && bet.status === "Pending") {
-            bet.pnl = bet.action === "Yes" ? (actualScore >= bet.line ? bet.stake : -bet.stake) : (actualScore < bet.line ? bet.stake : -bet.stake);
-            bet.status = "Resolved";
-            resolvedCount++;
-        }
-    });
-
-    if(resolvedCount === 0) { alert(`No pending tactics found for ${phaseToResolve}.`); } 
-    else { document.getElementById('resolveScore').value = ''; renderFancyTable(); }
-}
-
-function deleteFancyBet(index) { if(confirm("Scrub this Phase?")) { fancyBets.splice(index, 1); renderFancyTable(); } }
-function clearFancyBets() { if(confirm("Burn all PHASE data?")) { fancyBets = []; renderFancyTable(); } }
-
-function renderFancyTable() {
-    const tbody = document.getElementById('fancyTableBody');
-    if(!tbody) return;
-    tbody.innerHTML = '';
-    let totalFancyPnl = 0;
-
-    fancyBets.forEach((bet, index) => {
-        if(bet.status === "Resolved") { totalFancyPnl += bet.pnl; }
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${bet.phase}</td>
-            <td>${bet.action}</td>
-            <td>${bet.line}</td>
-            <td>${bet.stake}</td>
-            <td style="color: ${bet.status === 'Resolved' ? 'var(--text-muted)' : 'var(--warning)'}; font-weight: bold;">${bet.status}</td>
-            <td>${bet.status === "Resolved" ? formatMoney(bet.pnl) : '-'}</td>
-            <td class="action-btns"><button class="btn-danger" onclick="deleteFancyBet(${index})">Burn</button></td>
-        `;
-        tbody.appendChild(tr);
-    });
-    document.getElementById('fancyNetProfit').innerHTML = formatMoney(totalFancyPnl);
-    saveState();
-}
-
-const UPLINK_API = 'https://ipct-v.vercel.app/api/live';
-
-async function establishUplink() {
-    const matchStr = document.getElementById('matchSelect').value;
-    if (!matchStr) { alert("Mission Control: Please select an Active Mission first."); return; }
-
-    const selectedTeams = matchStr.split(': ')[1];
+// --- LIVE UPLINK FETCH ---
+function startLiveUplink(matchString) {
+    if(!matchString) return;
     const scoreBox = document.getElementById('liveScoreBox');
     const aiBox = document.getElementById('aiPredictionBox');
-    
-    if (uplinkInterval) clearInterval(uplinkInterval);
-    if (liveMatchEngine) clearInterval(liveMatchEngine);
+    const ballsBox = document.getElementById('lastBallsBox');
 
-    scoreBox.innerHTML = "> ESTABLISHING TARGETED SAT-UPLINK... [||||      ]";
-    aiBox.innerHTML = "> IGNITING QUANTUM ORACLE ENGINE... [||||      ]";
-
-    async function pingSatellite() {
+    async function fetchLive() {
         try {
-            const targetUrl = `${UPLINK_API}?teams=${encodeURIComponent(selectedTeams)}`;
-            const response = await fetch(targetUrl);
-            const json = await response.json();
-
-            if (json.success) {
-                const data = json.match_info;
-                
-                // Generate Cricbuzz-Style Ball Circles
-                let ballHTML = '';
-                if (data.last_balls && data.last_balls.length > 0) {
-                    ballHTML = '<div style="display:flex; gap:6px; margin:15px 0; overflow-x:auto; padding-bottom:5px;">';
-                    data.last_balls.forEach(ball => {
-                        let bg = "#222"; 
-                        if(ball === 'W') bg = "#f44336";
-                        else if(['4','6'].includes(ball)) bg = "#00e676";
-                        ballHTML += `<span style="min-width:30px; height:30px; border-radius:50%; background:${bg}; display:flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:bold; color:#fff; border:1px solid #444;">${ball}</span>`;
-                    });
-                    ballHTML += '</div>';
-                }
-
-                scoreBox.innerHTML = `
-                    <div style="color: #888; font-size: 0.85rem; margin-bottom: 8px;">[${data.title}]</div>
-                    <div style="color: #00e676; font-size: 1.5rem; font-weight: bold;">${data.live_score}</div>
-                    <div style="color: #ff9800; font-size: 0.9rem; margin-top: 5px;">${data.status}</div>
-                    ${ballHTML}
-                    <div style="color: #33b5e5; font-size: 1rem; font-weight:bold; margin-top:10px;">BOWLER: ${data.bowler}</div>
-                `;
-
-                aiBox.innerHTML = `
-                    <div style="color: #e1bee7; font-size: 1.1rem; margin-bottom: 8px; font-weight:bold; text-transform:uppercase;">IPCT Oracle (10-Ball Momentum)</div>
-                    <div style="color: #fff; font-size: 0.95rem; padding: 12px; background: rgba(225,190,231,0.08); border-left: 4px solid #e1bee7; border-radius: 4px;">
-                        > ${data.prediction}
-                    </div>
-                `;
-            } else {
-                scoreBox.innerHTML = `<div style="color: var(--warning);">> ERROR: DATA ENCRYPTION SYNC FAILED</div>`;
+            const resp = await fetch(`https://your-vercel-app.vercel.app/api/live?teams=${encodeURIComponent(matchString)}`);
+            const data = await resp.json();
+            if(data && data.match_info) {
+                scoreBox.innerHTML = data.match_info.live_score || "No Score";
+                aiBox.innerHTML = data.match_info.prediction || "No Prediction";
+                renderBalls(data.match_info.last_balls || []);
             }
-        } catch (err) { 
-            scoreBox.innerHTML = `<div style="color: var(--danger);">[UPLINK INTERCEPTED] Connection Failed. Retrying...</div>`;
-            console.error("Telemetry Sync Error", err); 
+        } catch (err) {
+            scoreBox.innerHTML = "Error uplink...";
+            aiBox.innerHTML = "Oracle offline...";
         }
     }
 
-    pingSatellite();
-    liveMatchEngine = setInterval(pingSatellite, 20000); 
+    fetchLive();
+    uplinkInterval = setInterval(fetchLive, 20000); // every 20s
 }
 
-// --- FULL-SCREEN WEB RADAR BROWSER ROOM ---
-function initBrowserRadar() {
-    if(document.getElementById('browserTab')) return; // Prevent duplicates
-
-    // 1. Inject the Web Radar Tab Button
-    const firstBtn = document.querySelector('.tab-btn');
-    if(firstBtn) {
-        const btnContainer = firstBtn.parentElement;
-        const newBtn = document.createElement('button');
-        newBtn.className = 'tab-btn';
-        newBtn.id = 'btn-browser';
-        newBtn.innerText = 'WEB RADAR';
-        newBtn.onclick = () => switchTab('browser');
-        btnContainer.appendChild(newBtn);
-    }
-
-    // 2. Inject the Web Radar Content Tab
-    const firstContent = document.querySelector('.tab-content');
-    if(firstContent) {
-        const contentContainer = firstContent.parentElement;
-        const newTab = document.createElement('div');
-        newTab.id = 'browserTab';
-        newTab.className = 'tab-content';
-        newTab.innerHTML = `
-            <div style="position: fixed; top: 50px; left: 0; width: 100%; height: calc(100% - 50px); background: #000; z-index: 2000; display:flex; flex-direction:column;">
-                <div style="background: #111; padding: 10px; display:flex; gap:8px; border-bottom:1px solid #333;">
-                    <input type="text" id="radarUrlInput" value="https://crex.live/" style="flex:1; background:#000; border:1px solid #444; color:#00e676; padding:10px; border-radius:4px; font-size:14px;">
-                    <button onclick="document.getElementById('radarFrame').src = document.getElementById('radarUrlInput').value" style="background:#00e676; color:#000; border:none; padding:10px 18px; font-weight:bold; border-radius:4px;">ENGAGE</button>
-                </div>
-                <iframe id="radarFrame" src="https://crex.live/" style="flex:1; width:100%; border:none; background:#fff;"></iframe>
-            </div>
-        `;
-        contentContainer.appendChild(newTab);
-    }
-}
-
-// --- SECURE BOOTSTRAP INIT ---
-// This guarantees the HTML is fully drawn on screen BEFORE injecting data
-function initializeApp() {
-    initMatchList();
-    initBrowserRadar();
-
-    try {
-        const savedData = safeGet('mi6_ledger_data');
-        if (savedData) {
-            const state = JSON.parse(savedData);
-            bets = state.bets || []; fancyBets = state.fancyBets || [];
-            team1Name = state.t1 || "Target A"; team2Name = state.t2 || "Target B";
-            const ms = document.getElementById('matchSelect');
-            if(ms) {
-                let matchFound = false;
-                for(let i=0; i<ms.options.length; i++) if(ms.options[i].value === state.match) matchFound = true;
-                if(matchFound) ms.value = state.match;
-            }
-            updateDropdowns();
-            const fw = document.getElementById('finalWinner');
-            if(fw) fw.value = state.winner || "";
-            calculateTable(); renderFancyTable();
-        } else { 
-            updateDropdowns(); 
-        }
-        
-        // Ensure dropdown listener is attached
-        const ms = document.getElementById('matchSelect');
-        if(ms) { ms.onchange = loadSelectedMatch; }
-        
-    } catch (error) { 
-        if(isStorageSafe) localStorage.removeItem('mi6_ledger_data'); 
-        updateDropdowns(); 
-    }
-}
-
-// The core fix: Wait for the DOM
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeApp);
-} else {
-    initializeApp();
-}
+// --- BALL RENDERING
