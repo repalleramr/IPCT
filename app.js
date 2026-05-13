@@ -185,4 +185,4 @@ function renderBalls(balls) {
   box.innerHTML = "";
   balls.forEach(b => {
     let marker = document.createElement('div');
-    marker.class
+    marker.classList.add('ball-marker','ball-
