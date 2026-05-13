@@ -1,6 +1,20 @@
 console.log("MI6 System Booting...");
 
+// --- SAFE STORAGE WRAPPER ---
+let isStorageSafe = false;
+let memoryStorage = {};
+try {
+    localStorage.setItem('__test_ping__','1');
+    localStorage.removeItem('__test_ping__');
+    isStorageSafe = true;
+} catch(e){ isStorageSafe=false; }
+function safeSet(k,v){ if(isStorageSafe){try{localStorage.setItem(k,v);}catch(e){}} else memoryStorage[k]=v; }
+function safeGet(k){ if(isStorageSafe){try{return localStorage.getItem(k);}catch(e){return null;}} return memoryStorage[k]||null; }
+
 // --- GLOBAL STATE ---
+let bets = [];
+let fancyBets = [];
+let editingIndex = -1;
 let uplinkInterval = null;
 let team1Name = "Target A", team2Name = "Target B";
 
@@ -49,35 +63,103 @@ function initMatchList() {
   });
 }
 
+// --- CORE MISSION (bets table) ---
+function addBet() {
+  const team = document.getElementById('entryTeam').value;
+  const action = document.getElementById('entryAction').value;
+  const rate = parseFloat(document.getElementById('entryRate').value);
+  const stake = parseFloat(document.getElementById('entryStake').value);
+  if(!team || !action || isNaN(rate) || isNaN(stake)) return;
+
+  if(editingIndex >= 0) {
+    bets[editingIndex] = {team, action, rate, stake};
+    editingIndex = -1;
+    document.getElementById('addBetBtn').innerText = "Execute Directive";
+  } else {
+    bets.push({team, action, rate, stake});
+  }
+  calculateTable();
+  saveState();
+}
+
+function calculateTable() {
+  const tbody = document.getElementById('betTableBody');
+  if(!tbody) return;
+  tbody.innerHTML = "";
+  let total = 0;
+  bets.forEach((b,i)=>{
+    const win = (b.stake * b.rate/100).toFixed(2);
+    const loss = (-b.stake).toFixed(2);
+    total += parseFloat(win);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${i+1}</td><td>${b.team}</td><td>${b.action}</td><td>${b.rate}</td><td>${b.stake}</td><td>${win}</td><td>${loss}</td><td>-</td><td>-</td>`;
+    tbody.appendChild(tr);
+  });
+  const net = document.getElementById('totalNetProfit');
+  if(net) net.textContent = total.toFixed(2);
+}
+
+// --- PHASE GOALS (fancy bets) ---
+function addFancyBet() {
+  const phase = document.getElementById('fancyPhase').value;
+  const action = document.getElementById('fancyAction').value;
+  const line = parseFloat(document.getElementById('fancyLine').value);
+  const stake = parseFloat(document.getElementById('fancyStake').value);
+  if(!phase || !action || isNaN(line) || isNaN(stake)) return;
+  fancyBets.push({phase, action, line, stake, status:"Pending"});
+  renderFancyTable();
+  saveState();
+}
+
+function renderFancyTable() {
+  const tbody = document.getElementById('fancyTableBody');
+  if(!tbody) return;
+  tbody.innerHTML = "";
+  let total = 0;
+  fancyBets.forEach((f,i)=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${f.phase}</td><td>${f.action}</td><td>${f.line}</td><td>${f.stake}</td><td>${f.status}</td><td>-</td><td>-</td>`;
+    tbody.appendChild(tr);
+    if(f.status==="Win") total += f.stake;
+    if(f.status==="Loss") total -= f.stake;
+  });
+  const net = document.getElementById('fancyNetProfit');
+  if(net) net.textContent = total.toFixed(2);
+}
+
+// --- SAVE/LOAD STATE ---
+function saveState() {
+  const state = {
+    bets, fancyBets,
+    match: document.getElementById('matchSelect').value,
+    t1: team1Name, t2: team2Name,
+    winner: document.getElementById('finalWinner').value
+  };
+  safeSet('mi6_ledger_data', JSON.stringify(state));
+}
+
 // --- LOAD SELECTED MATCH ---
 function loadSelectedMatch() {
   const val = document.getElementById('matchSelect').value;
   if (!val) return;
-
   const teamsPart = val.split(': ')[1];
   const teams = teamsPart.split(' vs ');
   team1Name = teams[0] ? teams[0].trim() : "Target A";
   team2Name = teams[1] ? teams[1].trim() : "Target B";
-
   if (uplinkInterval) clearInterval(uplinkInterval);
-
   document.getElementById('liveScoreBox').innerHTML = "> Establishing uplink...";
   document.getElementById('aiPredictionBox').innerHTML = "> Oracle engine warming...";
-
   startLiveUplink(val);
 }
 
 // --- BUTTON HANDLER ---
-function establishUplink() {
-  loadSelectedMatch();
-}
+function establishUplink() { loadSelectedMatch(); }
 
 // --- LIVE FETCH LOOP ---
 function startLiveUplink(matchString) {
   if (!matchString) return;
   const scoreBox = document.getElementById('liveScoreBox');
   const aiBox = document.getElementById('aiPredictionBox');
-
   async function fetchLive() {
     try {
       const resp = await fetch(`https://YOUR-VERCEL-APP.vercel.app/api/live?teams=${encodeURIComponent(matchString)}`);
@@ -92,9 +174,8 @@ function startLiveUplink(matchString) {
       aiBox.innerHTML = "Oracle offline...";
     }
   }
-
   fetchLive();
-  uplinkInterval = setInterval(fetchLive, 20000); // refresh every 20s
+  uplinkInterval = setInterval(fetchLive, 20000);
 }
 
 // --- BALL RENDERING ---
@@ -104,42 +185,4 @@ function renderBalls(balls) {
   box.innerHTML = "";
   balls.forEach(b => {
     let marker = document.createElement('div');
-    marker.classList.add('ball-marker', 'ball-anim');
-    if (b === 'W') marker.classList.add('ball-wicket');
-    else if (b === '4') marker.classList.add('ball-four');
-    else if (b === '6') marker.classList.add('ball-six');
-    else marker.classList.add('ball-dot');
-    marker.textContent = b;
-    box.appendChild(marker);
-  });
-}
-
-// --- WEB RADAR ---
-function initBrowserRadar() {
-  const inp = document.getElementById('radarUrlInput');
-  const btn = document.getElementById('radarLoadBtn');
-  const box = document.getElementById('radarFrameBox');
-  if (btn && inp && box) {
-    btn.onclick = () => {
-      const url = inp.value.trim();
-      if (url) {
-        box.innerHTML = `<iframe src="${url}" style="width:100%;height:100%;border:none;"></iframe>`;
-      }
-    };
-  }
-}
-
-// --- BOOTSTRAP ---
-function initializeApp() {
-  initMatchList();
-  initBrowserRadar();
-
-  const ms = document.getElementById('matchSelect');
-  if (ms) ms.onchange = loadSelectedMatch;
-}
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializeApp);
-} else {
-  initializeApp();
-}
+    marker.class
