@@ -1,192 +1,142 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#0b0e14">
-  <link rel="apple-touch-icon" href="icon.png">
-  <title>IPCT Intelligence Tracker</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="manifest" href="manifest.json">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>IPCT Classified Ledger</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="app-container">
+
     <header>
-      <h1>IPCT Classified Ledger</h1>
+        <h2>IPCT CLASSIFIED LEDGER</h2>
     </header>
 
-    <div class="tab-container">
-      <button id="btn-main" class="tab-btn active" onclick="switchTab('main')">Core</button>
-      <button id="btn-fancy" class="tab-btn" onclick="switchTab('fancy')">Phases</button>
-      <button id="btn-uplink" class="tab-btn" onclick="switchTab('uplink')">Uplink</button>
-      <button id="btn-browser" class="tab-btn" onclick="switchTab('browser')">Radar</button>
+    <div class="mission-briefing">
+        <select id="matchSelect" onchange="loadSelectedMatch()"></select>
     </div>
 
-    <div id="mainTab" class="tab-content active">
-      <section class="card">
-        <h3>Briefing Room</h3>
-        <div class="input-group">
-          <select id="matchSelect" onchange="loadSelectedMatch()"></select>
-        </div>
-        <div class="input-group mt-2">
-          <label for="finalWinner" style="color: var(--text-muted); font-size: 0.85rem; font-weight: bold; margin-right: 10px; text-transform: uppercase;">Asset Secured:</label>
-          <select id="finalWinner" onchange="calculateTable()"></select>
-        </div>
-      </section>
-
-      <section class="card">
-        <h3>Field Operation</h3>
-        <div class="live-preview" id="livePreviewBox">
-          <p><strong>Collateral Liability (Exposure):</strong></p>
-          <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1rem; margin-top: 5px;">
-            <span id="previewTeam1">Target A: 0.00</span>
-            <span id="previewTeam2">Target B: 0.00</span>
-          </div>
-        </div>
-        <div class="input-grid">
-          <div class="field">
-            <label>Target Faction</label>
-            <select id="entryTeam"></select>
-          </div>
-          <div class="field">
-            <label>Tactic</label>
-            <select id="entryAction" onchange="updateLivePreview()">
-              <option value="Play">Infiltrate (Add)</option>
-              <option value="Eat">Sabotage (Divert)</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Intel Accuracy</label>
-            <input type="number" id="entryRate" placeholder="Rate (e.g. 91)" onkeyup="updateLivePreview()">
-          </div>
-          <div class="field">
-            <label>Mission Funds</label>
-            <input type="number" id="entryStake" placeholder="Stake Amount" onkeyup="updateLivePreview()">
-          </div>
-        </div>
-        <button id="addBetBtn" onclick="addBet()">Execute Directive</button>
-      </section>
-
-      <section class="card">
-        <h3>Classified Ledger</h3>
-        <div class="table-wrapper">
-          <table id="betTable">
-            <thead>
-              <tr>
-                <th>#</th><th>Faction</th><th>Tactic</th><th>Intel</th>
-                <th>Funds</th><th>Yield (Win)</th><th>Yield (Loss)</th>
-                <th>Final Result</th><th>Clearance</th>
-              </tr>
-            </thead>
-            <tbody id="betTableBody"></tbody>
-          </table>
-        </div>
-        <div class="totals-bar">
-          <strong>Mission Balance:</strong>
-          <span id="totalNetProfit" class="neutral">0.00</span>
-        </div>
-      </section>
+    <div class="tabs">
+        <button id="btn-core" class="tab-btn active" onclick="switchTab('core')">CORE</button>
+        <button id="btn-phases" class="tab-btn" onclick="switchTab('phases')">PHASES</button>
+        <button id="btn-uplink" class="tab-btn" onclick="switchTab('uplink')">UPLINK</button>
     </div>
 
-    <div id="fancyTab" class="tab-content">
-      <section class="card">
-        <h3>Deploy Sub-Mission (Fancy)</h3>
-        <div class="input-grid">
-          <div class="field">
-            <label>Phase Frame</label>
-            <select id="fancyPhase">
-              <option value="6 Overs">6 Overs</option>
-              <option value="10 Overs">10 Overs</option>
-              <option value="15 Overs">15 Overs</option>
-              <option value="20 Overs">20 Overs</option>
-              <option value="Custom">Custom Target</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Stance</label>
-            <select id="fancyAction">
-              <option value="No">Deny (No)</option>
-              <option value="Yes">Confirm (Yes)</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Threshold (Line)</label>
-            <input type="number" id="fancyLine" placeholder="e.g. 71">
-          </div>
-          <div class="field">
-            <label>Funds (Stake)</label>
-            <input type="number" id="fancyStake" placeholder="Amount">
-          </div>
+    <div id="coreTab" class="tab-content active">
+        <div class="card">
+            <div class="input-grid">
+                <select id="entryTeam"></select>
+                <select id="entryAction">
+                    <option value="Play">Play (Lagai)</option>
+                    <option value="Eat">Eat (Khai)</option>
+                </select>
+                <input type="number" id="entryRate" placeholder="Rate (e.g. 90)">
+                <input type="number" id="entryStake" placeholder="Stake Amount">
+            </div>
+            
+            <div class="live-preview">
+                <span id="previewTeam1" class="neutral">Team A: 0.00</span>
+                <span id="previewTeam2" class="neutral">Team B: 0.00</span>
+            </div>
+            
+            <button id="addBetBtn" class="btn-primary" onclick="addBet()">Execute Directive</button>
         </div>
-        <button onclick="addFancyBet()">Deploy Phase Tactic</button>
-      </section>
 
-      <section class="card" style="border-color: var(--warning);">
-        <h3 style="color: var(--warning);">Resolve Phase</h3>
-        <div class="input-grid">
-          <div class="field">
-            <label>Select Pending Phase</label>
-            <select id="resolvePhase">
-              <option value="6 Overs">6 Overs</option>
-              <option value="10 Overs">10 Overs</option>
-              <option value="15 Overs">15 Overs</option>
-              <option value="20 Overs">20 Overs</option>
-              <option value="Custom">Custom Target</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Actual Runs Scored</label>
-            <input type="number" id="resolveScore" placeholder="Final Runs">
-          </div>
+        <div class="card table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Target</th>
+                        <th>Action</th>
+                        <th>Rate</th>
+                        <th>Stake</th>
+                        <th>Fav</th>
+                        <th>Opp</th>
+                        <th>Final</th>
+                        <th>Burn</th>
+                    </tr>
+                </thead>
+                <tbody id="betTableBody"></tbody>
+            </table>
         </div>
-        <button class="btn-warning" onclick="resolvePhase()" style="background-color: var(--warning); color: #000;">Lock Resolution</button>
-      </section>
 
-      <section class="card">
-        <h3>Phase Ledger</h3>
-        <div class="table-wrapper">
-          <table id="fancyTable">
-            <thead>
-              <tr>
-                <th>Phase</th><th>Stance</th><th>Line</th>
-                <th>Funds</th><th>Status</th><th>Net Result</th><th>Action</th>
-              </tr>
-            </thead>
-            <tbody id="fancyTableBody"></tbody>
-          </table>
+        <div class="card resolution-box">
+            <select id="finalWinner" onchange="calculateTable()"></select>
+            <div class="net-profit-box">
+                CORE NET: <span id="totalNetProfit" class="neutral">0.00</span>
+            </div>
+            <button class="btn-danger" style="margin-top: 10px; width: 100%;" onclick="clearBets()">Protocol Zero (Burn Core)</button>
         </div>
-        <div class="totals-bar">
-          <strong>Phase Balance:</strong>
-          <span id="fancyNetProfit" class="neutral">0.00</span>
+    </div>
+
+    <div id="phasesTab" class="tab-content">
+        <div class="card">
+            <div class="input-grid">
+                <input type="text" id="fancyPhase" placeholder="Phase (e.g. 6 Ov RCB)">
+                <select id="fancyAction">
+                    <option value="Yes">Yes (Y)</option>
+                    <option value="No">No (N)</option>
+                </select>
+                <input type="number" id="fancyLine" placeholder="Line (e.g. 52)">
+                <input type="number" id="fancyStake" placeholder="Stake">
+            </div>
+            <button class="btn-primary" onclick="addFancyBet()">Deploy Phase Tactic</button>
         </div>
-      </section>
+
+        <div class="card">
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <input type="text" id="resolvePhase" placeholder="Target Phase" style="flex: 2;">
+                <input type="number" id="resolveScore" placeholder="Actual" style="flex: 1;">
+            </div>
+            <button class="btn-warning" onclick="resolvePhase()">Resolve Target Phase</button>
+        </div>
+
+        <div class="card table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Phase</th>
+                        <th>Act</th>
+                        <th>Line</th>
+                        <th>Stake</th>
+                        <th>Status</th>
+                        <th>P&L</th>
+                        <th>Burn</th>
+                    </tr>
+                </thead>
+                <tbody id="fancyTableBody"></tbody>
+            </table>
+        </div>
+
+        <div class="card resolution-box">
+            <div class="net-profit-box">
+                PHASE NET: <span id="fancyNetProfit" class="neutral">0.00</span>
+            </div>
+            <button class="btn-danger" style="margin-top: 10px; width: 100%;" onclick="clearFancyBets()">Burn All Phases</button>
+        </div>
     </div>
 
     <div id="uplinkTab" class="tab-content">
-      <section class="card">
-        <h3>Live Field Telemetry</h3>
-        <div id="liveScoreBox" class="data-panel">> AWAITING UPLINK INITIATION...</div>
-      </section>
-
-      <section class="card ai-panel">
-        <h3>IPCT Quantum Oracle (AI)</h3>
-        <div id="aiPredictionBox" class="data-panel">> ORACLE ENGINE STANDBY...</div>
-        <button class="btn-ai mt-2" onclick="establishUplink()">Engage Secure Uplink</button>
-      </section>
-    </div>
-
-    <div id="browserTab" class="tab-content">
-        <div style="position: fixed; top: 60px; left: 0; width: 100%; height: calc(100% - 60px); background: #000; z-index: 2000; display:flex; flex-direction:column;">
-            <div style="background: #111; padding: 10px; display:flex; gap:8px; border-bottom:1px solid #333;">
-                <input type="text" id="radarUrlInput" value="https://crex.live/" style="flex:1; background:#000; border:1px solid #444; color:#00e676; padding:10px; border-radius:4px; font-size:14px;">
-                <button onclick="document.getElementById('radarFrame').src = document.getElementById('radarUrlInput').value" style="background:#00e676; color:#000; border:none; padding:10px 18px; font-weight:bold; border-radius:4px;">LOAD</button>
+        
+        <div class="uplink-card" style="border-color: #00ffcc;">
+            <div class="uplink-title" style="color: #00ffcc;">LIVE FIELD TELEMETRY</div>
+            <div id="liveScoreBox">
+                > AWAITING UPLINK INITIATION...
             </div>
-            <iframe id="radarFrame" src="https://crex.live/" style="flex:1; width:100%; border:none; background:#fff;"></iframe>
         </div>
+
+        <div class="uplink-card" style="border-color: #8a2be2;">
+            <div class="uplink-title" style="color: #cda2ff;">IPCT QUANTUM ORACLE (AI)</div>
+            <div id="aiPredictionBox" style="margin-bottom: 20px;">
+                > ORACLE ENGINE STANDBY...
+            </div>
+            
+            <button class="btn-purple" onclick="establishUplink()">ENGAGE SECURE UPLINK</button>
+        </div>
+
     </div>
 
-  </div>
-  
-  <script src="app.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
