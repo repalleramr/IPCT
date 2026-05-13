@@ -23,11 +23,9 @@ function safeGet(key) {
     return memoryStorage[key] || null;
 }
 
-let bets = [];
-let fancyBets = []; 
+let uplinkInterval = null;
 let team1Name = "Target A";
 let team2Name = "Target B";
-let uplinkInterval = null;
 
 // --- IPL FIXTURES ---
 const iplMatches = [
@@ -82,6 +80,11 @@ function loadSelectedMatch() {
 
     safeSet('mi6_ledger_data', JSON.stringify({ match: val, t1: team1Name, t2: team2Name }));
     startLiveUplink(val);
+}
+
+// --- BUTTON HANDLER ---
+function establishUplink() {
+    loadSelectedMatch();
 }
 
 // --- LIVE FETCH ---
@@ -159,9 +162,6 @@ function initializeApp() {
 
     const ms = document.getElementById('matchSelect');
     if(ms) ms.onchange = loadSelectedMatch;
-
-    const establishBtn = document.getElementById('establishLinkBtn');
-    if(establishBtn) establishBtn.onclick = loadSelectedMatch;
 }
 
 if (document.readyState === 'loading') {
