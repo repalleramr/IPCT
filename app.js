@@ -273,7 +273,6 @@ function updateFancyUI() {
     netBox.className = totalFancy > 0 ? "profit" : (totalFancy < 0 ? "loss" : "neutral");
 }
 
-
 // ==========================================
 // SATELLITE UPLINK ENGINE (VERCEL API CONNECTION)
 // ==========================================
@@ -298,15 +297,16 @@ async function establishUplink() {
     }
 
     try {
-        // 3. Ping the Vercel Satellite Server
+        // 3. Ping the Vercel Satellite Server using your exact link
         const vercelURL = `https://ipct-v.vercel.app/api/live?teams=${encodeURIComponent(teamsOnly)}`;
+        
         const response = await fetch(vercelURL);
         const data = await response.json();
 
+        // 4. Handle Success
         if (data.success) {
             const info = data.match_info;
 
-            // 4. Inject the Live Data into the App UI
             scoreBox.innerHTML = `
                 <div style="color: var(--primary); font-weight: bold; margin-bottom: 5px; font-size:0.85rem;">[${info.title}]</div>
                 <div style="font-size: 1.3rem; font-weight: bold; color: #fff;">${info.live_score}</div>
@@ -316,23 +316,26 @@ async function establishUplink() {
 
             aiBox.innerHTML = `> ${info.prediction}`;
 
-            // 5. Build the Colored Ball History Display
             info.last_balls.forEach(ball => {
                 let span = document.createElement('span');
                 span.className = 'ball';
                 span.innerText = ball;
-                
-                // Color coding based on cricket events
                 if (ball === 'W') span.classList.add('w');
                 else if (ball === '4') span.classList.add('four');
                 else if (ball === '6') span.classList.add('six');
-                
                 lastBallsBox.appendChild(span);
             });
+            
+        // 5. Handle Vercel Internal Errors
+        } else {
+            aiBox.innerHTML = "> VERCEL RETURNED AN ERROR.";
+            scoreBox.innerHTML = `> SATELLITE ERROR: ${data.error || "Unknown Failure"}`;
         }
+
+    // 6. Handle Network/Connection Errors
     } catch (err) {
         aiBox.innerHTML = "> UPLINK FAILED. CHECK CONNECTION.";
-        scoreBox.innerHTML = "> ERROR: SATELLITE UNREACHABLE";
+        scoreBox.innerHTML = "> ERROR: SATELLITE UNREACHABLE OR BAD URL";
         console.error("IPCT Uplink Error:", err);
     }
 }
