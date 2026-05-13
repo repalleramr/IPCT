@@ -14,45 +14,107 @@ try {
 }
 
 function safeSet(key, value) {
-    if (isStorageSafe) { try { localStorage.setItem(key, value); } catch(e){} } 
-    else { memoryStorage[key] = value; }
+    if (isStorageSafe) {
+        try { localStorage.setItem(key, value); } catch (e) {}
+    } else {
+        memoryStorage[key] = value;
+    }
 }
 
 function safeGet(key) {
-    if (isStorageSafe) { try { return localStorage.getItem(key); } catch(e){ return null; } }
+    if (isStorageSafe) {
+        try { return localStorage.getItem(key); } catch (e) { return null; }
+    }
     return memoryStorage[key] || null;
 }
 
 // --- GLOBAL VARIABLES ---
 let bets = [];
-let fancyBets = []; 
+let fancyBets = [];
 let team1Name = "Target A";
 let team2Name = "Target B";
-let editingIndex = -1; 
+let editingIndex = -1;
 let uplinkInterval = null;
 let liveMatchEngine = null;
+let currentMatchValue = "";
+let isBootstrapping = true;
 
+// --- FULL IPL 2026 SCHEDULE ---
 const iplMatches = [
+    "Mar 28 (7:30 PM): Royal Challengers Bengaluru vs Sunrisers Hyderabad",
+    "Mar 29 (3:30 PM): Mumbai Indians vs Kolkata Knight Riders",
+    "Mar 30 (7:30 PM): Rajasthan Royals vs Chennai Super Kings",
+    "Mar 31 (7:30 PM): Punjab Kings vs Gujarat Titans",
+    "Apr 01 (7:30 PM): Lucknow Super Giants vs Delhi Capitals",
+    "Apr 02 (7:30 PM): Kolkata Knight Riders vs Sunrisers Hyderabad",
+    "Apr 03 (7:30 PM): Chennai Super Kings vs Punjab Kings",
+    "Apr 04 (3:30 PM): Delhi Capitals vs Mumbai Indians",
+    "Apr 04 (7:30 PM): Gujarat Titans vs Rajasthan Royals",
+    "Apr 05 (3:30 PM): Sunrisers Hyderabad vs Lucknow Super Giants",
+    "Apr 05 (7:30 PM): Royal Challengers Bengaluru vs Chennai Super Kings",
+    "Apr 06 (7:30 PM): Kolkata Knight Riders vs Punjab Kings",
+    "Apr 07 (7:30 PM): Rajasthan Royals vs Mumbai Indians",
+    "Apr 08 (7:30 PM): Delhi Capitals vs Gujarat Titans",
+    "Apr 09 (7:30 PM): Kolkata Knight Riders vs Lucknow Super Giants",
+    "Apr 10 (7:30 PM): Rajasthan Royals vs Royal Challengers Bengaluru",
+    "Apr 11 (3:30 PM): Punjab Kings vs Sunrisers Hyderabad",
+    "Apr 11 (7:30 PM): Chennai Super Kings vs Delhi Capitals",
+    "Apr 12 (3:30 PM): Lucknow Super Giants vs Gujarat Titans",
+    "Apr 12 (7:30 PM): Mumbai Indians vs Royal Challengers Bengaluru",
+    "Apr 13 (7:30 PM): Sunrisers Hyderabad vs Rajasthan Royals",
+    "Apr 14 (7:30 PM): Chennai Super Kings vs Kolkata Knight Riders",
+    "Apr 15 (7:30 PM): Royal Challengers Bengaluru vs Lucknow Super Giants",
+    "Apr 16 (7:30 PM): Mumbai Indians vs Punjab Kings",
+    "Apr 17 (7:30 PM): Gujarat Titans vs Kolkata Knight Riders",
+    "Apr 18 (3:30 PM): Royal Challengers Bengaluru vs Delhi Capitals",
+    "Apr 18 (7:30 PM): Sunrisers Hyderabad vs Chennai Super Kings",
+    "Apr 19 (3:30 PM): Kolkata Knight Riders vs Rajasthan Royals",
+    "Apr 19 (7:30 PM): Punjab Kings vs Lucknow Super Giants",
+    "Apr 20 (7:30 PM): Gujarat Titans vs Mumbai Indians",
+    "Apr 21 (7:30 PM): Sunrisers Hyderabad vs Delhi Capitals",
+    "Apr 22 (7:30 PM): Lucknow Super Giants vs Rajasthan Royals",
+    "Apr 23 (7:30 PM): Mumbai Indians vs Chennai Super Kings",
+    "Apr 24 (7:30 PM): Royal Challengers Bengaluru vs Gujarat Titans",
+    "Apr 25 (3:30 PM): Delhi Capitals vs Punjab Kings",
+    "Apr 25 (7:30 PM): Rajasthan Royals vs Sunrisers Hyderabad",
+    "Apr 26 (3:30 PM): Gujarat Titans vs Chennai Super Kings",
+    "Apr 26 (7:30 PM): Lucknow Super Giants vs Kolkata Knight Riders",
+    "Apr 27 (7:30 PM): Delhi Capitals vs Royal Challengers Bengaluru",
+    "Apr 28 (7:30 PM): Punjab Kings vs Rajasthan Royals",
+    "Apr 29 (7:30 PM): Mumbai Indians vs Sunrisers Hyderabad",
+    "Apr 30 (7:30 PM): Gujarat Titans vs Royal Challengers Bengaluru",
+    "May 01 (7:30 PM): Rajasthan Royals vs Delhi Capitals",
+    "May 02 (7:30 PM): Chennai Super Kings vs Mumbai Indians",
+    "May 03 (3:30 PM): Sunrisers Hyderabad vs Kolkata Knight Riders",
+    "May 03 (7:30 PM): Gujarat Titans vs Punjab Kings",
+    "May 04 (7:30 PM): Mumbai Indians vs Lucknow Super Giants",
+    "May 05 (7:30 PM): Delhi Capitals vs Chennai Super Kings",
+    "May 06 (7:30 PM): Sunrisers Hyderabad vs Punjab Kings",
+    "May 07 (7:30 PM): Lucknow Super Giants vs Royal Challengers Bengaluru",
+    "May 08 (7:30 PM): Delhi Capitals vs Kolkata Knight Riders",
+    "May 09 (7:30 PM): Rajasthan Royals vs Gujarat Titans",
+    "May 10 (3:30 PM): Chennai Super Kings vs Lucknow Super Giants",
+    "May 10 (7:30 PM): Royal Challengers Bengaluru vs Mumbai Indians",
     "May 11 (7:30 PM): Punjab Kings vs Delhi Capitals",
     "May 12 (7:30 PM): Gujarat Titans vs Sunrisers Hyderabad",
-    "May 13 (7:30 PM): Mumbai Indians vs Royal Challengers Bengaluru",
-    "May 14 (7:30 PM): Kolkata Knight Riders vs Chennai Super Kings",
-    "May 15 (7:30 PM): Lucknow Super Giants vs Rajasthan Royals",
-    "May 16 (7:30 PM): Delhi Capitals vs Gujarat Titans",
-    "May 17 (3:30 PM): Punjab Kings vs Sunrisers Hyderabad",
-    "May 17 (7:30 PM): Royal Challengers Bengaluru vs Kolkata Knight Riders",
-    "May 18 (7:30 PM): Chennai Super Kings vs Lucknow Super Giants",
-    "May 19 (7:30 PM): Mumbai Indians vs Rajasthan Royals",
-    "May 20 (7:30 PM): Delhi Capitals vs Royal Challengers Bengaluru",
-    "May 21 (7:30 PM): Kolkata Knight Riders vs Gujarat Titans",
-    "May 22 (7:30 PM): Sunrisers Hyderabad vs Chennai Super Kings",
-    "May 23 (7:30 PM): Rajasthan Royals vs Punjab Kings",
-    "May 24 (3:30 PM): Lucknow Super Giants vs Mumbai Indians",
-    "May 24 (7:30 PM): Gujarat Titans vs Royal Challengers Bengaluru",
+    "May 13 (7:30 PM): Royal Challengers Bengaluru vs Kolkata Knight Riders",
+    "May 14 (7:30 PM): Punjab Kings vs Mumbai Indians",
+    "May 15 (7:30 PM): Lucknow Super Giants vs Chennai Super Kings",
+    "May 16 (7:30 PM): Kolkata Knight Riders vs Gujarat Titans",
+    "May 17 (3:30 PM): Punjab Kings vs Royal Challengers Bengaluru",
+    "May 17 (7:30 PM): Delhi Capitals vs Rajasthan Royals",
+    "May 18 (7:30 PM): Chennai Super Kings vs Sunrisers Hyderabad",
+    "May 19 (7:30 PM): Rajasthan Royals vs Lucknow Super Giants",
+    "May 20 (7:30 PM): Kolkata Knight Riders vs Mumbai Indians",
+    "May 21 (7:30 PM): Chennai Super Kings vs Gujarat Titans",
+    "May 22 (7:30 PM): Sunrisers Hyderabad vs Royal Challengers Bengaluru",
+    "May 23 (7:30 PM): Lucknow Super Giants vs Punjab Kings",
+    "May 24 (3:30 PM): Mumbai Indians vs Rajasthan Royals",
+    "May 24 (7:30 PM): Kolkata Knight Riders vs Delhi Capitals",
     "May 26 (7:30 PM) [Qualifier 1]: TBD vs TBD",
     "May 27 (7:30 PM) [Eliminator]: TBD vs TBD",
     "May 29 (7:30 PM) [Qualifier 2]: TBD vs TBD",
-    "May 31 (7:30 PM) [Final]: TBD vs TBD"
+    "May 31 (7:30 PM) [FINAL]: TBD vs TBD"
 ];
 
 // --- APP LOGIC ---
@@ -65,7 +127,9 @@ function switchTab(tabId) {
 
 function initMatchList() {
     const select = document.getElementById('matchSelect');
-    if(!select) return; 
+    if (!select) return;
+
+    select.innerHTML = '';
     iplMatches.forEach(match => {
         let opt = document.createElement('option');
         opt.value = match;
@@ -78,57 +142,95 @@ function saveState() {
     const state = {
         bets: bets,
         fancyBets: fancyBets,
-        match: document.getElementById('matchSelect').value,
+        match: document.getElementById('matchSelect')?.value || "",
         t1: team1Name,
         t2: team2Name,
-        winner: document.getElementById('finalWinner').value
+        winner: document.getElementById('finalWinner')?.value || ""
     };
     safeSet('mi6_ledger_data', JSON.stringify(state));
 }
 
+function loadData() {
+    const savedData = safeGet('mi6_ledger_data');
+    if (!savedData) return;
+
+    try {
+        const state = JSON.parse(savedData);
+        bets = Array.isArray(state.bets) ? state.bets : [];
+        fancyBets = Array.isArray(state.fancyBets) ? state.fancyBets : [];
+        currentMatchValue = state.match || "";
+        team1Name = state.t1 || "Target A";
+        team2Name = state.t2 || "Target B";
+    } catch (error) {
+        console.log("Saved state parse failed:", error);
+    }
+}
+
 function loadSelectedMatch() {
-    if (bets.length > 0 || fancyBets.length > 0) {
-        if (confirm("Initiate new mission? This will burn current core AND phase logs.")) {
-            bets = []; fancyBets = []; editingIndex = -1;
-            document.getElementById('addBetBtn').innerText = "Execute Directive";
-            document.getElementById('finalWinner').value = "";
-            renderFancyTable();
-        } else {
-            const saved = safeGet('mi6_ledger_data');
-            if(saved) { try { document.getElementById('matchSelect').value = JSON.parse(saved).match || ""; } catch(e){} }
+    const matchSelect = document.getElementById('matchSelect');
+    if (!matchSelect) return;
+
+    const val = matchSelect.value || "";
+    if (!val) return;
+
+    if (!isBootstrapping && currentMatchValue && currentMatchValue !== val && (bets.length > 0 || fancyBets.length > 0)) {
+        if (!confirm("Initiate new mission? This will burn current core AND phase logs.")) {
+            matchSelect.value = currentMatchValue;
             return;
         }
+        bets = [];
+        fancyBets = [];
+        editingIndex = -1;
+        document.getElementById('addBetBtn').innerText = "Execute Directive";
+        document.getElementById('finalWinner').value = "";
+        renderFancyTable();
     }
-    const val = document.getElementById('matchSelect').value;
-    if (val) {
-        const teamsPart = val.split(': ')[1];
-        const teams = teamsPart.split(' vs ');
-        team1Name = teams[0] ? teams[0].trim() : "Target A";
-        team2Name = teams[1] ? teams[1].trim() : "Target B";
-    } else { team1Name = "Target A"; team2Name = "Target B"; }
-    
-    if(uplinkInterval) clearInterval(uplinkInterval);
-    if(liveMatchEngine) clearInterval(liveMatchEngine);
+
+    const teamsPart = val.split(': ')[1] || "";
+    const teams = teamsPart.split(' vs ');
+
+    team1Name = (teams[0] || "Target A").trim();
+    team2Name = (teams[1] || "Target B").trim();
+
+    currentMatchValue = val;
+
+    if (uplinkInterval) clearInterval(uplinkInterval);
+    if (liveMatchEngine) clearInterval(liveMatchEngine);
+
     document.getElementById('liveScoreBox').innerHTML = "> AWAITING UPLINK INITIATION...";
     document.getElementById('aiPredictionBox').innerHTML = "> ORACLE ENGINE STANDBY...";
 
     updateDropdowns();
     calculateTable();
+    updateLivePreview();
+    saveState();
 }
 
 function updateDropdowns() {
     const winnerSelect = document.getElementById('finalWinner');
     const currentWinner = winnerSelect.value;
-    winnerSelect.innerHTML = `<option value="">-- Pending Clearance --</option>
-                              <option value="${team1Name}">${team1Name}</option>
-                              <option value="${team2Name}">${team2Name}</option>`;
-    if (currentWinner === team1Name || currentWinner === team2Name) winnerSelect.value = currentWinner;
+
+    winnerSelect.innerHTML = `
+<option value="">-- Pending Clearance --</option>
+<option value="${team1Name}">${team1Name}</option>
+<option value="${team2Name}">${team2Name}</option>
+`;
+
+    if (currentWinner === team1Name || currentWinner === team2Name) {
+        winnerSelect.value = currentWinner;
+    }
 
     const entrySelect = document.getElementById('entryTeam');
     const currentEntry = entrySelect.value;
-    entrySelect.innerHTML = `<option value="${team1Name}">${team1Name}</option>
-                             <option value="${team2Name}">${team2Name}</option>`;
-    if (currentEntry === team1Name || currentEntry === team2Name) entrySelect.value = currentEntry;
+
+    entrySelect.innerHTML = `
+<option value="${team1Name}">${team1Name}</option>
+<option value="${team2Name}">${team2Name}</option>
+`;
+
+    if (currentEntry === team1Name || currentEntry === team2Name) {
+        entrySelect.value = currentEntry;
+    }
 
     updateLivePreview();
 }
@@ -136,18 +238,32 @@ function updateDropdowns() {
 function calculatePreview(action, rate, stake) {
     let favPL = 0, oppPL = 0;
     if (!rate || !stake) return { favPL, oppPL };
-    if (action === 'Play') { favPL = stake * (rate / 100); oppPL = -stake; } 
-    else if (action === 'Eat') { favPL = -(stake * (rate / 100)); oppPL = stake; }
+
+    if (action === 'Play') {
+        favPL = stake * (rate / 100);
+        oppPL = -stake;
+    } else if (action === 'Eat') {
+        favPL = -(stake * (rate / 100));
+        oppPL = stake;
+    }
     return { favPL, oppPL };
 }
 
 function getBaseExposure() {
     let t1Base = 0, t2Base = 0;
+
     bets.forEach((b, index) => {
-        if (index === editingIndex) return; 
-        if (b.team === team1Name) { t1Base += b.favPL; t2Base += b.oppPL; } 
-        else { t2Base += b.favPL; t1Base += b.oppPL; }
+        if (index === editingIndex) return;
+
+        if (b.team === team1Name) {
+            t1Base += b.favPL;
+            t2Base += b.oppPL;
+        } else {
+            t2Base += b.favPL;
+            t1Base += b.oppPL;
+        }
     });
+
     return { t1Base, t2Base };
 }
 
@@ -163,13 +279,17 @@ function updateLivePreview() {
     let t1Preview = t1Base + (favTeam === team1Name ? favPL : oppPL);
     let t2Preview = t2Base + (favTeam === team1Name ? oppPL : favPL);
 
-    if(stake === 0 || rate === 0) { t1Preview = t1Base; t2Preview = t2Base; }
+    if (stake === 0 || rate === 0) {
+        t1Preview = t1Base;
+        t2Preview = t2Base;
+    }
 
     const t1El = document.getElementById('previewTeam1');
     const t2El = document.getElementById('previewTeam2');
 
     t1El.innerText = `${team1Name}: ${t1Preview.toFixed(2)}`;
     t2El.innerText = `${team2Name}: ${t2Preview.toFixed(2)}`;
+
     t1El.className = t1Preview > 0 ? 'positive' : (t1Preview < 0 ? 'negative' : 'neutral');
     t2El.className = t2Preview > 0 ? 'positive' : (t2Preview < 0 ? 'negative' : 'neutral');
 }
@@ -180,17 +300,24 @@ function addBet() {
     const rate = parseFloat(document.getElementById('entryRate').value);
     const stake = parseFloat(document.getElementById('entryStake').value);
 
-    if (!team || isNaN(rate) || isNaN(stake)) { alert("Mission Control: Required Intel Missing."); return; }
+    if (!team || isNaN(rate) || isNaN(stake)) {
+        alert("Mission Control: Required Intel Missing.");
+        return;
+    }
+
     const { favPL, oppPL } = calculatePreview(action, rate, stake);
-    
+
     if (editingIndex !== -1) {
         bets[editingIndex] = { team, action, rate, stake, favPL, oppPL };
-        editingIndex = -1; 
-        document.getElementById('addBetBtn').innerText = "Execute Directive"; 
-    } else { bets.push({ team, action, rate, stake, favPL, oppPL }); }
+        editingIndex = -1;
+        document.getElementById('addBetBtn').innerText = "Execute Directive";
+    } else {
+        bets.push({ team, action, rate, stake, favPL, oppPL });
+    }
 
     document.getElementById('entryRate').value = '';
     document.getElementById('entryStake').value = '';
+
     updateLivePreview();
     calculateTable();
 }
@@ -208,25 +335,29 @@ function editBet(index) {
 }
 
 function deleteBet(index) {
-    if(confirm("Scrub this entry from the ledger?")) {
+    if (confirm("Scrub this entry from the ledger?")) {
         bets.splice(index, 1);
         if (editingIndex === index) {
             editingIndex = -1;
             document.getElementById('addBetBtn').innerText = "Execute Directive";
             document.getElementById('entryRate').value = '';
             document.getElementById('entryStake').value = '';
-        } else if (editingIndex > index) { editingIndex--; }
+        } else if (editingIndex > index) {
+            editingIndex--;
+        }
         updateLivePreview();
         calculateTable();
     }
 }
 
 function clearBets() {
-    if(confirm("Confirm Protocol Zero: Burn all CORE data for this mission?")) {
-        bets = []; editingIndex = -1;
+    if (confirm("Confirm Protocol Zero: Burn all CORE data for this mission?")) {
+        bets = [];
+        editingIndex = -1;
         document.getElementById('addBetBtn').innerText = "Execute Directive";
         document.getElementById('finalWinner').value = "";
-        updateLivePreview(); calculateTable();
+        updateLivePreview();
+        calculateTable();
     }
 }
 
@@ -244,7 +375,9 @@ function calculateTable() {
     let runningTotal = 0;
 
     bets.forEach((bet, index) => {
-        let finalPL = 0, isFinal = false;
+        let finalPL = 0;
+        let isFinal = false;
+
         if (finalWinner) {
             isFinal = true;
             finalPL = (finalWinner === bet.team) ? bet.favPL : bet.oppPL;
@@ -266,10 +399,14 @@ function calculateTable() {
             <td>${formatMoney(bet.favPL)}</td>
             <td>${formatMoney(bet.oppPL)}</td>
             <td>${isFinal ? formatMoney(finalPL) : '-'}</td>
-            <td class="action-btns"><button class="btn-warning" onclick="editBet(${index})">Edit</button><button class="btn-danger" onclick="deleteBet(${index})">Burn</button></td>
+            <td class="action-btns">
+                <button class="btn-warning" onclick="editBet(${index})">Edit</button>
+                <button class="btn-danger" onclick="deleteBet(${index})">Burn</button>
+            </td>
         `;
         tbody.appendChild(tr);
     });
+
     document.getElementById('totalNetProfit').innerHTML = formatMoney(runningTotal);
     saveState();
 }
@@ -280,8 +417,13 @@ function addFancyBet() {
     const line = parseFloat(document.getElementById('fancyLine').value);
     const stake = parseFloat(document.getElementById('fancyStake').value);
 
-    if(!phase || isNaN(line) || isNaN(stake)) { alert("Phase parameters incomplete."); return; }
+    if (!phase || isNaN(line) || isNaN(stake)) {
+        alert("Phase parameters incomplete.");
+        return;
+    }
+
     fancyBets.push({ phase, action, line, stake, status: 'Pending', pnl: 0 });
+
     document.getElementById('fancyLine').value = '';
     document.getElementById('fancyStake').value = '';
     renderFancyTable();
@@ -290,25 +432,46 @@ function addFancyBet() {
 function resolvePhase() {
     const phaseToResolve = document.getElementById('resolvePhase').value;
     const actualStr = document.getElementById('resolveScore').value;
-    
-    if(!actualStr) { alert("Please enter the final runs scored."); return; }
+
+    if (!actualStr) {
+        alert("Please enter the final runs scored.");
+        return;
+    }
+
     const actualScore = parseFloat(actualStr);
     let resolvedCount = 0;
 
     fancyBets.forEach(bet => {
-        if(bet.phase === phaseToResolve && bet.status === "Pending") {
-            bet.pnl = bet.action === "Yes" ? (actualScore >= bet.line ? bet.stake : -bet.stake) : (actualScore < bet.line ? bet.stake : -bet.stake);
+        if (bet.phase === phaseToResolve && bet.status === "Pending") {
+            bet.pnl = bet.action === "Yes"
+                ? (actualScore >= bet.line ? bet.stake : -bet.stake)
+                : (actualScore < bet.line ? bet.stake : -bet.stake);
             bet.status = "Resolved";
             resolvedCount++;
         }
     });
 
-    if(resolvedCount === 0) { alert(`No pending tactics found for ${phaseToResolve}.`); } 
-    else { document.getElementById('resolveScore').value = ''; renderFancyTable(); }
+    if (resolvedCount === 0) {
+        alert(`No pending tactics found for ${phaseToResolve}.`);
+    } else {
+        document.getElementById('resolveScore').value = '';
+        renderFancyTable();
+    }
 }
 
-function deleteFancyBet(index) { if(confirm("Scrub this Phase?")) { fancyBets.splice(index, 1); renderFancyTable(); } }
-function clearFancyBets() { if(confirm("Burn all PHASE data?")) { fancyBets = []; renderFancyTable(); } }
+function deleteFancyBet(index) {
+    if (confirm("Scrub this Phase?")) {
+        fancyBets.splice(index, 1);
+        renderFancyTable();
+    }
+}
+
+function clearFancyBets() {
+    if (confirm("Burn all PHASE data?")) {
+        fancyBets = [];
+        renderFancyTable();
+    }
+}
 
 function renderFancyTable() {
     const tbody = document.getElementById('fancyTableBody');
@@ -316,7 +479,8 @@ function renderFancyTable() {
     let totalFancyPnl = 0;
 
     fancyBets.forEach((bet, index) => {
-        if(bet.status === "Resolved") { totalFancyPnl += bet.pnl; }
+        if (bet.status === "Resolved") totalFancyPnl += bet.pnl;
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${bet.phase}</td>
@@ -329,6 +493,7 @@ function renderFancyTable() {
         `;
         tbody.appendChild(tr);
     });
+
     document.getElementById('fancyNetProfit').innerHTML = formatMoney(totalFancyPnl);
     saveState();
 }
@@ -336,18 +501,18 @@ function renderFancyTable() {
 // --- TAB 3: REAL RAPID-API SATELLITE ENGINE ---
 function getMatchTime(matchStr) {
     if (!matchStr) return new Date();
-    const datePart = matchStr.split('(')[0].trim(); 
-    const monthStr = datePart.split(' ')[0]; 
-    const dayStr = datePart.split(' ')[1].padStart(2, '0'); 
-    const monthMap = {"May": "05", "Jun": "06", "Apr": "04"};
+    const datePart = matchStr.split('(')[0].trim();
+    const monthStr = datePart.split(' ')[0];
+    const dayStr = datePart.split(' ')[1].padStart(2, '0');
+    const monthMap = { "May": "05", "Jun": "06", "Apr": "04", "Mar": "03" };
     const month = monthMap[monthStr] || "05";
-    
-    let hh = "19"; let mm = "30"; 
-    if (matchStr.includes("3:30 PM")) { hh = "15"; }
+
+    let hh = "19";
+    let mm = "30";
+    if (matchStr.includes("3:30 PM")) hh = "15";
     return new Date(`2026-${month}-${dayStr}T${hh}:${mm}:00+05:30`);
 }
 
-// Deep JSON Search to extract data no matter what endpoint structure RapidAPI sends
 function extractScoreFromJSON(data) {
     let str = JSON.stringify(data);
     let runs = 0, wkts = 0, overs = 0.0;
@@ -355,19 +520,21 @@ function extractScoreFromJSON(data) {
         let rMatch = str.match(/"runs"\s*:\s*(\d+)/i) || str.match(/"score"\s*:\s*(\d+)/i);
         let wMatch = str.match(/"wickets"\s*:\s*(\d+)/i);
         let oMatch = str.match(/"overs"\s*:\s*([\d\.]+)/i);
-        
+
         if (rMatch) runs = parseInt(rMatch[1]);
         if (wMatch) wkts = parseInt(wMatch[1]);
         if (oMatch) overs = parseFloat(oMatch[1]);
-    } catch(e) {}
+    } catch (e) {}
     return { runs, wkts, overs };
 }
 
 async function establishUplink() {
     const matchStr = document.getElementById('matchSelect').value;
-    if (!matchStr) { alert("Mission Control: Please select an Active Mission first."); return; }
+    if (!matchStr) {
+        alert("Mission Control: Please select an Active Mission first.");
+        return;
+    }
 
-    // 1. SECURE CREDENTIAL CHECK
     let apiKey = safeGet('rapidapi_key');
     if (!apiKey) {
         apiKey = prompt("MI6 Protocol: Enter your secure x-rapidapi-key to initialize live feed.");
@@ -380,7 +547,7 @@ async function establishUplink() {
 
     const scoreBox = document.getElementById('liveScoreBox');
     const aiBox = document.getElementById('aiPredictionBox');
-    
+
     if (uplinkInterval) clearInterval(uplinkInterval);
     if (liveMatchEngine) clearInterval(liveMatchEngine);
 
@@ -402,27 +569,23 @@ async function establishUplink() {
         }
     };
 
-    // Form tracking logic
-    let recentBallsArray = ['1', '0', '1', '2', '0', '4']; 
+    let recentBallsArray = ['1', '0', '1', '2', '0', '4'];
 
-    // Function to ping API
     async function pingSatellite() {
         try {
             const response = await fetch(`https://free-cricbuzz-cricket-api.p.rapidapi.com/cricket-match-info?matchid=${matchId}`, options);
             if (!response.ok) throw new Error("API Auth Failed or Limit Reached.");
             const data = await response.json();
-            
-            // Extract the real score dynamically
+
             const { runs, wkts, overs } = extractScoreFromJSON(data);
-            
-            // Randomize form slightly for radar animation purposes since the API doesn't give us ball-by-ball history directly here
+
             let outcome = ['0', '1', '2', '4', '6', 'W'][Math.floor(Math.random() * 6)];
             recentBallsArray.push(outcome);
-            if(recentBallsArray.length > 6) recentBallsArray.shift();
+            if (recentBallsArray.length > 6) recentBallsArray.shift();
 
             let radarHTML = `<div class="radar-box"><div class="radar-title"><span>Live Intel Feed</span><span class="radar-status">● LIVE</span></div><div class="ball-history">`;
             recentBallsArray.forEach((ball, idx) => {
-                let cssClass = 'ball-marker ' + (ball==='0'?'ball-dot':ball==='4'?'ball-four':ball==='6'?'ball-six':ball==='W'?'ball-wicket':'ball-dot');
+                let cssClass = 'ball-marker ' + (ball === '0' ? 'ball-dot' : ball === '4' ? 'ball-four' : ball === '6' ? 'ball-six' : ball === 'W' ? 'ball-wicket' : 'ball-dot');
                 let animClass = (idx === recentBallsArray.length - 1) ? 'ball-anim' : '';
                 radarHTML += `<div class="${cssClass} ${animClass}">${ball}</div>`;
             });
@@ -434,48 +597,67 @@ async function establishUplink() {
                 ${radarHTML}
             `;
 
-            // AI Projections using real data
             let last10Runs = 0;
-            recentBallsArray.forEach(b => { if(b!=='W') last10Runs += parseInt(b); });
-            let rrMulti = Math.max(last10Runs / 1.5, 6.0); // Minimum 6 RPO projection
+            recentBallsArray.forEach(b => { if (b !== 'W') last10Runs += parseInt(b); });
+            let rrMulti = Math.max(last10Runs / 1.5, 6.0);
 
             let projHTML = `<div style="margin-top:15px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.1);">
                 <div style="color:var(--text-muted); font-size:0.8rem; margin-bottom:8px;">PHASE PROJECTIONS (Active RR)</div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.9rem; color: #fff;">`;
-                
-            if (overs < 6) projHTML += `<div>6 Ov: <span style="color:var(--primary); font-weight:bold;">${Math.floor(runs + (6-overs)*rrMulti)}</span></div>`;
-            if (overs < 10) projHTML += `<div>10 Ov: <span style="color:var(--primary); font-weight:bold;">${Math.floor(runs + (10-overs)*rrMulti)}</span></div>`;
-            if (overs < 15) projHTML += `<div>15 Ov: <span style="color:var(--primary); font-weight:bold;">${Math.floor(runs + (15-overs)*rrMulti)}</span></div>`;
-            if (overs < 20) projHTML += `<div>20 Ov: <span style="color:var(--primary); font-weight:bold;">${Math.floor(runs + (20-overs)*rrMulti)}</span></div>`;
+
+            if (overs < 6) projHTML += `<div>6 Ov: <span style="color:var(--primary); font-weight:bold;">${Math.floor(runs + (6 - overs) * rrMulti)}</span></div>`;
+            if (overs < 10) projHTML += `<div>10 Ov: <span style="color:var(--primary); font-weight:bold;">${Math.floor(runs + (10 - overs) * rrMulti)}</span></div>`;
+            if (overs < 15) projHTML += `<div>15 Ov: <span style="color:var(--primary); font-weight:bold;">${Math.floor(runs + (15 - overs) * rrMulti)}</span></div>`;
+            if (overs < 20) projHTML += `<div>20 Ov: <span style="color:var(--primary); font-weight:bold;">${Math.floor(runs + (20 - overs) * rrMulti)}</span></div>`;
             projHTML += `</div></div>`;
 
             aiBox.innerHTML = `<div style="color: #e1bee7; font-size: 1.1rem; margin-bottom: 5px;">[ORACLE PROJECTION]</div>${projHTML}`;
-
         } catch (err) {
             scoreBox.innerHTML = `<div style="color: var(--danger);">[UPLINK FAILED] ${err.message}</div>`;
             clearInterval(liveMatchEngine);
         }
     }
 
-    // Run first ping immediately, then every 20 seconds
     pingSatellite();
-    liveMatchEngine = setInterval(pingSatellite, 20000); 
+    liveMatchEngine = setInterval(pingSatellite, 20000);
 }
 
 // --- BOOTSTRAP INIT ---
 initMatchList();
+
+loadData();
+
+const ms = document.getElementById('matchSelect');
+if (ms && ms.options.length > 0) {
+    let matchFound = false;
+    if (currentMatchValue) {
+        for (let i = 0; i < ms.options.length; i++) {
+            if (ms.options[i].value === currentMatchValue) {
+                matchFound = true;
+                break;
+            }
+        }
+        if (matchFound) ms.value = currentMatchValue;
+    }
+}
+
+isBootstrapping = true;
 try {
-    const savedData = safeGet('mi6_ledger_data');
-    if (savedData) {
-        const state = JSON.parse(savedData);
-        bets = state.bets || []; fancyBets = state.fancyBets || [];
-        team1Name = state.t1 || "Target A"; team2Name = state.t2 || "Target B";
-        const ms = document.getElementById('matchSelect');
-        let matchFound = false;
-        for(let i=0; i<ms.options.length; i++) if(ms.options[i].value === state.match) matchFound = true;
-        if(matchFound) ms.value = state.match; else state.winner = ""; 
-        updateDropdowns();
-        document.getElementById('finalWinner').value = state.winner || "";
-        calculateTable(); renderFancyTable();
-    } else { updateDropdowns(); }
-} catch (error) { if(isStorageSafe) localStorage.removeItem('mi6_ledger_data'); updateDropdowns(); }
+    loadSelectedMatch();
+    if (safeGet('mi6_ledger_data')) {
+        const saved = JSON.parse(safeGet('mi6_ledger_data'));
+        if (saved && saved.winner) {
+            document.getElementById('finalWinner').value = saved.winner || "";
+        }
+    }
+    calculateTable();
+    renderFancyTable();
+    updateLivePreview();
+} catch (error) {
+    if (isStorageSafe) localStorage.removeItem('mi6_ledger_data');
+    updateDropdowns();
+}
+isBootstrapping = false;
+
+// SAVE INITIAL STATE
+saveState();
