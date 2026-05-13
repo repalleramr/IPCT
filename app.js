@@ -33,11 +33,6 @@ function saveData() {
     );
 
     localStorage.setItem(
-        'ipct_fancy',
-        JSON.stringify(fancyBets)
-    );
-
-    localStorage.setItem(
         'ipct_selected_match',
         document.getElementById(
             'matchSelect'
@@ -59,21 +54,10 @@ function loadData() {
             'ipct_bets'
         );
 
-    const savedFancy =
-        localStorage.getItem(
-            'ipct_fancy'
-        );
-
     if (savedBets) {
 
         bets =
             JSON.parse(savedBets);
-    }
-
-    if (savedFancy) {
-
-        fancyBets =
-            JSON.parse(savedFancy);
     }
 }
 
@@ -196,6 +180,8 @@ function loadSelectedMatch() {
 
     updateDropdowns();
 
+    calculateTable();
+
     updateLivePreview();
 
     saveData();
@@ -274,10 +260,10 @@ function updateLivePreview() {
             ).value || 0
         );
 
+    // START WITH EXISTING REAL EXPOSURE
+
     let team1Exposure = 0;
     let team2Exposure = 0;
-
-    // EXISTING BETS
 
     bets.forEach(b => {
 
@@ -293,7 +279,7 @@ function updateLivePreview() {
         }
     });
 
-    // CURRENT INPUT PREVIEW
+    // PREVIEW ONLY CURRENT UNSAVED ENTRY
 
     if (
         rate > 0 &&
@@ -322,34 +308,30 @@ function updateLivePreview() {
         }
     }
 
-    const t1 =
-        document.getElementById(
-            'previewTeam1'
-        );
-
-    const t2 =
-        document.getElementById(
-            'previewTeam2'
-        );
-
-    t1.innerHTML =
+    document.getElementById(
+        'previewTeam1'
+    ).innerHTML =
 `
-${team1Name}:
-${team1Exposure.toFixed(2)}
+${team1Name}: ${team1Exposure.toFixed(2)}
 `;
 
-    t2.innerHTML =
+    document.getElementById(
+        'previewTeam2'
+    ).innerHTML =
 `
-${team2Name}:
-${team2Exposure.toFixed(2)}
+${team2Name}: ${team2Exposure.toFixed(2)}
 `;
 
-    t1.className =
+    document.getElementById(
+        'previewTeam1'
+    ).className =
         team1Exposure >= 0
         ? 'positive'
         : 'negative';
 
-    t2.className =
+    document.getElementById(
+        'previewTeam2'
+    ).className =
         team2Exposure >= 0
         ? 'positive'
         : 'negative';
@@ -373,7 +355,6 @@ function addBet() {
 
     const rate =
         parseFloat(
-
             document.getElementById(
                 'entryRate'
             ).value
@@ -381,7 +362,6 @@ function addBet() {
 
     const stake =
         parseFloat(
-
             document.getElementById(
                 'entryStake'
             ).value
@@ -412,11 +392,8 @@ function addBet() {
         oppPL
     });
 
-    saveData();
-
-    calculateTable();
-
-    updateLivePreview();
+    // CLEAR INPUTS FIRST
+    // THIS FIXES DOUBLE EXPOSURE BUG
 
     document.getElementById(
         'entryRate'
@@ -425,6 +402,12 @@ function addBet() {
     document.getElementById(
         'entryStake'
     ).value = '';
+
+    saveData();
+
+    calculateTable();
+
+    updateLivePreview();
 }
 
 /* =========================================
@@ -482,7 +465,7 @@ ${winner ? pnl.toFixed(0) : '-'}
 <td>
 
 <button
-onclick="bets.splice(${i},1);saveData();calculateTable();updateLivePreview();">
+onclick="deleteBet(${i})">
 
 X
 
@@ -500,6 +483,21 @@ X
         'totalNetProfit'
     ).innerText =
         total.toFixed(2);
+}
+
+/* =========================================
+   DELETE BET
+   ========================================= */
+
+function deleteBet(index) {
+
+    bets.splice(index, 1);
+
+    saveData();
+
+    calculateTable();
+
+    updateLivePreview();
 }
 
 /* =========================================
@@ -575,9 +573,7 @@ async function establishUplink() {
             scoreBox.innerHTML =
 `
 
-<b>
-[${info.title || 'IPL LIVE INTEL'}]
-</b>
+<b>[${info.title || 'IPL LIVE INTEL'}]</b>
 
 <br><br>
 
@@ -638,7 +634,6 @@ ${info.venue || 'Unavailable'}
 <b>SOURCE:</b>
 <br>
 ${info.source || 'Unknown'}
-
 `;
 
             aiBox.innerHTML =
@@ -668,7 +663,6 @@ LAST OVER:
 ${info.last_over && info.last_over.length
 ? info.last_over.join(' ')
 : '-'}
-
 `;
         }
         else {
