@@ -1,142 +1,457 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    >
+
     <title>IPCT Classified Ledger</title>
+
     <link rel="stylesheet" href="style.css">
+
+    <!-- PWA -->
+
+    <link rel="manifest" href="manifest.json">
+
+    <meta
+        name="theme-color"
+        content="#00ffcc"
+    >
+
 </head>
+
 <body>
 
     <header>
         <h2>IPCT CLASSIFIED LEDGER</h2>
     </header>
 
+    <!-- MATCH SELECT -->
+
     <div class="mission-briefing">
-        <select id="matchSelect" onchange="loadSelectedMatch()"></select>
+
+        <select
+            id="matchSelect"
+            onchange="loadSelectedMatch()"
+        ></select>
+
     </div>
+
+    <!-- TABS -->
 
     <div class="tabs">
-        <button id="btn-core" class="tab-btn active" onclick="switchTab('core')">CORE</button>
-        <button id="btn-phases" class="tab-btn" onclick="switchTab('phases')">PHASES</button>
-        <button id="btn-uplink" class="tab-btn" onclick="switchTab('uplink')">UPLINK</button>
+
+        <button
+            id="btn-core"
+            class="tab-btn active"
+            onclick="switchTab('core')"
+        >
+            CORE
+        </button>
+
+        <button
+            id="btn-phases"
+            class="tab-btn"
+            onclick="switchTab('phases')"
+        >
+            PHASES
+        </button>
+
+        <button
+            id="btn-uplink"
+            class="tab-btn"
+            onclick="switchTab('uplink')"
+        >
+            UPLINK
+        </button>
+
     </div>
 
-    <div id="coreTab" class="tab-content active">
+    <!-- ===================================== -->
+    <!-- CORE TAB -->
+    <!-- ===================================== -->
+
+    <div
+        id="coreTab"
+        class="tab-content active"
+    >
+
+        <!-- ENTRY CARD -->
+
         <div class="card">
+
             <div class="input-grid">
+
                 <select id="entryTeam"></select>
+
                 <select id="entryAction">
-                    <option value="Play">Play (Lagai)</option>
-                    <option value="Eat">Eat (Khai)</option>
+
+                    <option value="Play">
+                        Play (Lagai)
+                    </option>
+
+                    <option value="Eat">
+                        Eat (Khai)
+                    </option>
+
                 </select>
-                <input type="number" id="entryRate" placeholder="Rate (e.g. 90)">
-                <input type="number" id="entryStake" placeholder="Stake Amount">
+
+                <input
+                    type="number"
+                    id="entryRate"
+                    placeholder="Rate (e.g. 90)"
+                >
+
+                <input
+                    type="number"
+                    id="entryStake"
+                    placeholder="Stake Amount"
+                >
+
             </div>
-            
+
+            <!-- LIVE PREVIEW -->
+
             <div class="live-preview">
-                <span id="previewTeam1" class="neutral">Team A: 0.00</span>
-                <span id="previewTeam2" class="neutral">Team B: 0.00</span>
+
+                <span
+                    id="previewTeam1"
+                    class="neutral"
+                >
+                    Team A: 0.00
+                </span>
+
+                <span
+                    id="previewTeam2"
+                    class="neutral"
+                >
+                    Team B: 0.00
+                </span>
+
             </div>
-            
-            <button id="addBetBtn" class="btn-primary" onclick="addBet()">Execute Directive</button>
+
+            <button
+                id="addBetBtn"
+                class="btn-primary"
+                onclick="addBet()"
+            >
+                Execute Directive
+            </button>
+
         </div>
 
+        <!-- BET TABLE -->
+
         <div class="card table-container">
+
             <table>
+
                 <thead>
+
                     <tr>
+
                         <th>#</th>
+
                         <th>Target</th>
+
                         <th>Action</th>
+
                         <th>Rate</th>
+
                         <th>Stake</th>
+
                         <th>Fav</th>
+
                         <th>Opp</th>
+
                         <th>Final</th>
+
                         <th>Burn</th>
+
                     </tr>
+
                 </thead>
+
                 <tbody id="betTableBody"></tbody>
+
             </table>
+
         </div>
+
+        <!-- NET RESULT -->
 
         <div class="card resolution-box">
-            <select id="finalWinner" onchange="calculateTable()"></select>
+
+            <select
+                id="finalWinner"
+                onchange="calculateTable()"
+            ></select>
+
             <div class="net-profit-box">
-                CORE NET: <span id="totalNetProfit" class="neutral">0.00</span>
+
+                CORE NET:
+                <span
+                    id="totalNetProfit"
+                    class="neutral"
+                >
+                    0.00
+                </span>
+
             </div>
-            <button class="btn-danger" style="margin-top: 10px; width: 100%;" onclick="clearBets()">Protocol Zero (Burn Core)</button>
+
+            <button
+                class="btn-danger"
+                style="margin-top:10px;width:100%;"
+                onclick="clearBets()"
+            >
+                Protocol Zero (Burn Core)
+            </button>
+
         </div>
+
     </div>
 
-    <div id="phasesTab" class="tab-content">
-        <div class="card">
-            <div class="input-grid">
-                <input type="text" id="fancyPhase" placeholder="Phase (e.g. 6 Ov RCB)">
-                <select id="fancyAction">
-                    <option value="Yes">Yes (Y)</option>
-                    <option value="No">No (N)</option>
-                </select>
-                <input type="number" id="fancyLine" placeholder="Line (e.g. 52)">
-                <input type="number" id="fancyStake" placeholder="Stake">
-            </div>
-            <button class="btn-primary" onclick="addFancyBet()">Deploy Phase Tactic</button>
-        </div>
+    <!-- ===================================== -->
+    <!-- PHASE TAB -->
+    <!-- ===================================== -->
+
+    <div
+        id="phasesTab"
+        class="tab-content"
+    >
+
+        <!-- PHASE ENTRY -->
 
         <div class="card">
-            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                <input type="text" id="resolvePhase" placeholder="Target Phase" style="flex: 2;">
-                <input type="number" id="resolveScore" placeholder="Actual" style="flex: 1;">
+
+            <div class="input-grid">
+
+                <input
+                    type="text"
+                    id="fancyPhase"
+                    placeholder="Phase (e.g. 6 Ov RCB)"
+                >
+
+                <select id="fancyAction">
+
+                    <option value="Yes">
+                        Yes (Y)
+                    </option>
+
+                    <option value="No">
+                        No (N)
+                    </option>
+
+                </select>
+
+                <input
+                    type="number"
+                    id="fancyLine"
+                    placeholder="Line (e.g. 52)"
+                >
+
+                <input
+                    type="number"
+                    id="fancyStake"
+                    placeholder="Stake"
+                >
+
             </div>
-            <button class="btn-warning" onclick="resolvePhase()">Resolve Target Phase</button>
+
+            <button
+                class="btn-primary"
+                onclick="addFancyBet()"
+            >
+                Deploy Phase Tactic
+            </button>
+
         </div>
+
+        <!-- PHASE RESOLVE -->
+
+        <div class="card">
+
+            <div
+                style="
+                    display:flex;
+                    gap:10px;
+                    margin-bottom:10px;
+                "
+            >
+
+                <input
+                    type="text"
+                    id="resolvePhase"
+                    placeholder="Target Phase"
+                    style="flex:2;"
+                >
+
+                <input
+                    type="number"
+                    id="resolveScore"
+                    placeholder="Actual"
+                    style="flex:1;"
+                >
+
+            </div>
+
+            <button
+                class="btn-warning"
+                onclick="resolvePhase()"
+            >
+                Resolve Target Phase
+            </button>
+
+        </div>
+
+        <!-- PHASE TABLE -->
 
         <div class="card table-container">
+
             <table>
+
                 <thead>
+
                     <tr>
+
                         <th>Phase</th>
+
                         <th>Act</th>
+
                         <th>Line</th>
+
                         <th>Stake</th>
+
                         <th>Status</th>
+
                         <th>P&L</th>
+
                         <th>Burn</th>
+
                     </tr>
+
                 </thead>
+
                 <tbody id="fancyTableBody"></tbody>
+
             </table>
+
         </div>
+
+        <!-- PHASE NET -->
 
         <div class="card resolution-box">
+
             <div class="net-profit-box">
-                PHASE NET: <span id="fancyNetProfit" class="neutral">0.00</span>
+
+                PHASE NET:
+
+                <span
+                    id="fancyNetProfit"
+                    class="neutral"
+                >
+                    0.00
+                </span>
+
             </div>
-            <button class="btn-danger" style="margin-top: 10px; width: 100%;" onclick="clearFancyBets()">Burn All Phases</button>
+
+            <button
+                class="btn-danger"
+                style="margin-top:10px;width:100%;"
+                onclick="clearFancyBets()"
+            >
+                Burn All Phases
+            </button>
+
         </div>
+
     </div>
 
-    <div id="uplinkTab" class="tab-content">
-        
-        <div class="uplink-card" style="border-color: #00ffcc;">
-            <div class="uplink-title" style="color: #00ffcc;">LIVE FIELD TELEMETRY</div>
+    <!-- ===================================== -->
+    <!-- UPLINK TAB -->
+    <!-- ===================================== -->
+
+    <div
+        id="uplinkTab"
+        class="tab-content"
+    >
+
+        <!-- LIVE SCORE -->
+
+        <div
+            class="uplink-card"
+            style="border-color:#00ffcc;"
+        >
+
+            <div
+                class="uplink-title"
+                style="color:#00ffcc;"
+            >
+                LIVE FIELD TELEMETRY
+            </div>
+
             <div id="liveScoreBox">
+
                 > AWAITING UPLINK INITIATION...
+
             </div>
+
         </div>
 
-        <div class="uplink-card" style="border-color: #8a2be2;">
-            <div class="uplink-title" style="color: #cda2ff;">IPCT QUANTUM ORACLE (AI)</div>
-            <div id="aiPredictionBox" style="margin-bottom: 20px;">
-                > ORACLE ENGINE STANDBY...
+        <!-- AI -->
+
+        <div
+            class="uplink-card"
+            style="border-color:#8a2be2;"
+        >
+
+            <div
+                class="uplink-title"
+                style="color:#cda2ff;"
+            >
+                IPCT QUANTUM ORACLE (AI)
             </div>
-            
-            <button class="btn-purple" onclick="establishUplink()">ENGAGE SECURE UPLINK</button>
+
+            <div
+                id="aiPredictionBox"
+                style="margin-bottom:20px;"
+            >
+
+                > ORACLE ENGINE STANDBY...
+
+            </div>
+
+            <button
+                class="btn-purple"
+                onclick="establishUplink()"
+            >
+                ENGAGE SECURE UPLINK
+            </button>
+
         </div>
 
     </div>
+
+    <!-- APP -->
 
     <script src="app.js"></script>
+
+    <!-- PWA -->
+
+    <script>
+
+        if ('serviceWorker' in navigator) {
+
+            navigator.serviceWorker.register(
+                'service-worker.js'
+            );
+        }
+
+    </script>
+
 </body>
 </html>
