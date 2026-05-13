@@ -3,101 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MI6 IPCT Ledger</title>
+    <title>MI6 Classified Ledger</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>MI6 SYSTEM <span id="connectionStatus">●</span></h1>
-            <select id="matchSelect" onchange="loadSelectedMatch()"></select>
-        </header>
 
-        <nav class="tabs">
-            <button class="tab-btn active" id="btn-core" onclick="switchTab('core')">DASHBOARD</button>
-            <button class="tab-btn" id="btn-phase" onclick="switchTab('phase')">PHASE MATRIX</button>
-            <button class="tab-btn" id="btn-live" onclick="switchTab('live')">LIVE UPLINK</button>
-        </nav>
+    <div class="tabs">
+        <button id="btn-core" class="tab-btn active" onclick="switchTab('core')">CORE MISSION</button>
+        <button id="btn-phases" class="tab-btn" onclick="switchTab('phases')">PHASE GOALS</button>
+        <button id="btn-uplink" class="tab-btn" onclick="switchTab('uplink')">SAT-UPLINK</button>
+    </div>
 
-        <div id="coreTab" class="tab-content active">
-            <div class="card">
-                <div class="input-group">
-                    <select id="entryTeam"></select>
-                    <select id="entryAction">
-                        <option value="Play">PLAY (Back)</option>
-                        <option value="Eat">EAT (Lay)</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <input type="number" id="entryRate" placeholder="Rate (e.g. 80)">
-                    <input type="number" id="entryStake" placeholder="Stake">
-                </div>
-                <button class="btn-primary" id="addBetBtn" onclick="addBet()">EXECUTE DIRECTIVE</button>
-                
-                <div class="preview-box">
-                    <div id="previewTeam1">--</div>
-                    <div id="previewTeam2">--</div>
-                </div>
+    <div id="coreTab" class="tab-content active">
+        
+        <div class="section-card">
+            <div class="section-header">1. BRIEFING ROOM</div>
+            <select id="matchSelect" class="mi-input" onchange="loadSelectedMatch()"></select>
+            
+            <div class="input-row" style="margin-top: 15px;">
+                <div class="label-text">Asset Secured<br>(Outcome):</div>
+                <select id="finalWinner" class="mi-input" onchange="calculateTable()"></select>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header">2. FIELD OPERATION</div>
+            
+            <div class="exposure-box">
+                <div class="exposure-title">COLLATERAL LIABILITY<br>(EXPOSURE):</div>
+                <div id="previewTeam1" class="exposure-team neutral">Target A: 0.00</div>
+                <div id="previewTeam2" class="exposure-team neutral">Target B: 0.00</div>
             </div>
 
-            <div class="card overflow-x">
-                <div class="table-header">
-                    <select id="finalWinner" onchange="calculateTable()"></select>
-                    <h3>CORE LEDGER</h3>
+            <div class="input-grid">
+                <div>
+                    <label>TARGET FACTION</label>
+                    <select id="entryTeam" class="mi-input"></select>
                 </div>
+                <div>
+                    <label>TACTIC</label>
+                    <select id="entryAction" class="mi-input">
+                        <option value="Play">Infiltrate (Add)</option>
+                        <option value="Eat">Exfiltrate (Eat)</option>
+                    </select>
+                </div>
+                <div>
+                    <label>INTEL ACCURACY</label>
+                    <input type="number" id="entryRate" class="mi-input" placeholder="e.g. 91">
+                </div>
+                <div>
+                    <label>MISSION FUNDS</label>
+                    <input type="number" id="entryStake" class="mi-input" placeholder="Amount">
+                </div>
+            </div>
+            
+            <button id="addBetBtn" class="btn-green" onclick="addBet()">EXECUTE DIRECTIVE</button>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header">3. CLASSIFIED LEDGER</div>
+            <div class="table-container">
                 <table>
                     <thead>
-                        <tr><th>#</th><th>Team</th><th>Action</th><th>Rate</th><th>Stake</th><th>(+)</th><th>(-)</th><th>P/L</th><th>Opt</th></tr>
+                        <tr>
+                            <th>#</th>
+                            <th>FACTION</th>
+                            <th>TACTIC</th>
+                            <th>INTEL</th>
+                            <th>FUNDS</th>
+                            <th>FAV</th>
+                            <th>OPP</th>
+                            <th>FINAL</th>
+                            <th>ACT</th>
+                        </tr>
                     </thead>
                     <tbody id="betTableBody"></tbody>
                 </table>
-                <div class="total-bar">NET PROFIT: <span id="totalNetProfit">0.00</span></div>
             </div>
-        </div>
-
-        <div id="phaseTab" class="tab-content">
-            <div class="card">
-                <div class="input-group">
-                    <input type="text" id="fancyPhase" placeholder="Phase (e.g. 6 Over)">
-                    <select id="fancyAction"><option value="Yes">YES</option><option value="No">NO</option></select>
-                </div>
-                <div class="input-group">
-                    <input type="number" id="fancyLine" placeholder="Line">
-                    <input type="number" id="fancyStake" placeholder="Stake">
-                </div>
-                <button class="btn-primary" onclick="addFancyBet()">LOCK PHASE</button>
+            
+            <div class="mission-balance">
+                MISSION BALANCE: <span id="totalNetProfit" class="neutral">0.00</span>
             </div>
-
-            <div class="card overflow-x">
-                <div class="input-group">
-                    <input type="text" id="resolvePhase" placeholder="Phase to Resolve">
-                    <input type="number" id="resolveScore" placeholder="Actual Score">
-                    <button class="btn-warning" onclick="resolvePhase()">RESOLVE</button>
-                </div>
-                <table>
-                    <thead>
-                        <tr><th>Phase</th><th>Side</th><th>Line</th><th>Stake</th><th>Status</th><th>P/L</th><th>Opt</th></tr>
-                    </thead>
-                    <tbody id="fancyTableBody"></tbody>
-                </table>
-                <div class="total-bar">PHASE NET: <span id="fancyNetProfit">0.00</span></div>
-            </div>
-        </div>
-
-        <div id="liveTab" class="tab-content">
-            <div class="card">
-                <div id="liveScoreBox">
-                    <div style="text-align:center; padding:20px; color:var(--text-muted);">
-                        > AWAITING MANUAL INITIALIZATION...
-                        <button onclick="updateManualDisplay()" class="btn-primary" style="margin-top:10px;">START TRACKING</button>
-                    </div>
-                </div>
-            </div>
-            <div class="card" style="margin-top: 15px;">
-                <div id="aiPredictionBox">> ORACLE STANDBY...</div>
-            </div>
+            <button class="btn-danger" style="margin-top: 10px;" onclick="clearBets()">BURN CORE DATA</button>
         </div>
     </div>
+
+    <div id="phasesTab" class="tab-content">
+        <div class="section-card">
+            <div class="section-header" style="color: #aaa;">PHASE TRACKING STANDBY</div>
+            <p style="color: #666; font-size: 0.9rem; text-align: center; margin-top: 15px;">Awaiting Phase Intel...</p>
+        </div>
+    </div>
+
+    <div id="uplinkTab" class="tab-content">
+        
+        <div class="section-card" style="border: 1px solid #00e676;">
+            <div class="uplink-header" style="color: #00e676;">LIVE FIELD TELEMETRY</div>
+            <p class="uplink-desc">Ping secure satellite node for real-time match scores.</p>
+            <div id="liveScoreBox" class="console-box">
+                > AWAITING UPLINK INITIATION...
+            </div>
+        </div>
+
+        <div class="section-card" style="border: 1px solid #b366ff;">
+            <div class="uplink-header" style="color: #b366ff;">MI6 QUANTUM ORACLE (AI)</div>
+            <p class="uplink-desc">Activate AI to predict outcome probabilities based on intercept data.</p>
+            <div id="aiPredictionBox" class="console-box">
+                > ORACLE ENGINE STANDBY...
+            </div>
+            
+            <button class="btn-purple" onclick="establishUplink()">ESTABLISH SECURE UPLINK</button>
+        </div>
+
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>
