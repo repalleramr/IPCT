@@ -34,7 +34,7 @@ window.onload = () => {
         select.appendChild(opt);
     });
 
-    // 1. RESTORE SAVED MATCH (Fixes the Reload Bug)
+    // 1. RESTORE SAVED MATCH 
     const savedMatch = localStorage.getItem('ipct_match');
     if (savedMatch && matchSchedule.includes(savedMatch)) {
         select.value = savedMatch;
@@ -42,7 +42,6 @@ window.onload = () => {
         select.value = "May 13 (7:30 PM): Royal Challengers Bengaluru vs Kolkata Knight Riders";
     }
 
-    // Initialize the teams for the dropdowns
     setupMatchDropdowns();
 
     // 2. RESTORE SAVED LEDGER ENTRIES
@@ -59,11 +58,10 @@ window.onload = () => {
     // 4. ATTACH INSTANT CALCULATION LISTENERS
     document.getElementById('finalWinner').addEventListener('change', () => {
         saveSystemMemory();
-        calculateTable(); // Instantly calculates when you pick the winner!
+        calculateTable(); 
     });
 
     document.getElementById('matchSelect').addEventListener('change', () => {
-        // If changing to a new match, wipe the ledger clean safely
         bets = []; fancyBets = [];
         localStorage.removeItem('ipct_bets');
         localStorage.removeItem('ipct_fancy');
@@ -73,6 +71,12 @@ window.onload = () => {
         updateCoreUI();
         updateFancyUI();
     });
+
+    // 5. ATTACH LIVE TYPING SENSORS FOR INSTANT EXPOSURE PREVIEW
+    document.getElementById('entryRate').addEventListener('input', updateLivePreview);
+    document.getElementById('entryStake').addEventListener('input', updateLivePreview);
+    document.getElementById('entryTeam').addEventListener('change', updateLivePreview);
+    document.getElementById('entryAction').addEventListener('change', updateLivePreview);
 
     // Render the restored data
     updateCoreUI();
@@ -147,14 +151,10 @@ function addBet() {
 }
 
 function updateCoreUI() {
-    let t1Net = 0; let t2Net = 0;
     const tbody = document.getElementById('betTableBody');
     tbody.innerHTML = '';
 
     bets.forEach((bet, index) => {
-        if (bet.team === currentTeam1) { t1Net += bet.winAmt; t2Net += bet.lossAmt; } 
-        else { t2Net += bet.winAmt; t1Net += bet.lossAmt; }
-
         let tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${index + 1}</td>
@@ -170,20 +170,53 @@ function updateCoreUI() {
         tbody.appendChild(tr);
     });
 
-    const p1 = document.getElementById('previewTeam1');
-    const p2 = document.getElementById('previewTeam2');
-    p1.innerText = `${currentTeam1.substring(0,3).toUpperCase()}: ${t1Net > 0 ? '+' : ''}${t1Net.toFixed(2)}`;
-    p1.className = t1Net >= 0 ? 'profit' : 'loss';
-    p2.innerText = `${currentTeam2.substring(0,3).toUpperCase()}: ${t2Net > 0 ? '+' : ''}${t2Net.toFixed(2)}`;
-    p2.className = t2Net >= 0 ? 'profit' : 'loss';
-
     calculateTable();
+    updateLivePreview(); // Run the live preview to update the exposure boxes
 }
 
 function deleteBet(index) {
     bets.splice(index, 1);
     saveSystemMemory();
     updateCoreUI();
+}
+
+// --- THE INSTANT TYPING PREVIEW CALCULATOR ---
+function updateLivePreview() {
+    let t1Net = 0; let t2Net = 0;
+    
+    // 1. Calculate confirmed bets
+    bets.forEach((bet) => {
+        if (bet.team === currentTeam1) { t1Net += bet.winAmt; t2Net += bet.lossAmt; } 
+        else { t2Net += bet.winAmt; t1Net += bet.lossAmt; }
+    });
+
+    // 2. Add the hypothetical bet currently being typed in the inputs
+    const team = document.getElementById('entryTeam').value;
+    const action = document.getElementById('entryAction').value;
+    const rate = parseFloat(document.getElementById('entryRate').value) || 0;
+    const stake = parseFloat(document.getElementById('entryStake').value) || 0;
+
+    if (rate > 0 && stake > 0) {
+        let winAmt = 0; let lossAmt = 0;
+        if (action === "Play") {
+            winAmt = stake * (rate / 100);
+            lossAmt = -stake;
+        } else {
+            winAmt = stake;
+            lossAmt = -(stake * (rate / 100));
+        }
+
+        if (team === currentTeam1) { t1Net += winAmt; t2Net += lossAmt; } 
+        else { t2Net += winAmt; t1Net += lossAmt; }
+    }
+
+    // 3. Instantly update the UI boxes
+    const p1 = document.getElementById('previewTeam1');
+    const p2 = document.getElementById('previewTeam2');
+    p1.innerText = `${currentTeam1.substring(0,3).toUpperCase()}: ${t1Net > 0 ? '+' : ''}${t1Net.toFixed(2)}`;
+    p1.className = t1Net >= 0 ? 'profit' : 'loss';
+    p2.innerText = `${currentTeam2.substring(0,3).toUpperCase()}: ${t2Net > 0 ? '+' : ''}${t2Net.toFixed(2)}`;
+    p2.className = t2Net >= 0 ? 'profit' : 'loss';
 }
 
 function calculateTable() {
