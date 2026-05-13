@@ -61,6 +61,23 @@ function initMatchList() {
     opt.textContent = m;
     sel.appendChild(opt);
   });
+  // also populate team dropdowns
+  updateDropdowns();
+}
+
+// --- UPDATE DROPDOWNS ---
+function updateDropdowns() {
+  const winnerSelect = document.getElementById('finalWinner');
+  if(winnerSelect) {
+    winnerSelect.innerHTML = `<option value="">-- Pending Clearance --</option>
+      <option value="${team1Name}">${team1Name}</option>
+      <option value="${team2Name}">${team2Name}</option>`;
+  }
+  const entrySelect = document.getElementById('entryTeam');
+  if(entrySelect) {
+    entrySelect.innerHTML = `<option value="${team1Name}">${team1Name}</option>
+      <option value="${team2Name}">${team2Name}</option>`;
+  }
 }
 
 // --- CORE MISSION (bets table) ---
@@ -146,6 +163,7 @@ function loadSelectedMatch() {
   const teams = teamsPart.split(' vs ');
   team1Name = teams[0] ? teams[0].trim() : "Target A";
   team2Name = teams[1] ? teams[1].trim() : "Target B";
+  updateDropdowns();
   if (uplinkInterval) clearInterval(uplinkInterval);
   document.getElementById('liveScoreBox').innerHTML = "> Establishing uplink...";
   document.getElementById('aiPredictionBox').innerHTML = "> Oracle engine warming...";
@@ -162,27 +180,4 @@ function startLiveUplink(matchString) {
   const aiBox = document.getElementById('aiPredictionBox');
   async function fetchLive() {
     try {
-      const resp = await fetch(`https://YOUR-VERCEL-APP.vercel.app/api/live?teams=${encodeURIComponent(matchString)}`);
-      const data = await resp.json();
-      if (data && data.match_info) {
-        scoreBox.innerHTML = data.match_info.live_score || "No Score";
-        aiBox.innerHTML = data.match_info.prediction || "No Prediction";
-        renderBalls(data.match_info.last_balls || []);
-      }
-    } catch (err) {
-      scoreBox.innerHTML = "Error uplink...";
-      aiBox.innerHTML = "Oracle offline...";
-    }
-  }
-  fetchLive();
-  uplinkInterval = setInterval(fetchLive, 20000);
-}
-
-// --- BALL RENDERING ---
-function renderBalls(balls) {
-  const box = document.getElementById('lastBallsBox');
-  if (!box) return;
-  box.innerHTML = "";
-  balls.forEach(b => {
-    let marker = document.createElement('div');
-    marker.classList.add('ball-marker','ball-
+      const resp = await fetch(`https://YOUR-VERCEL-APP.vercel.app/api/live?teams=${
