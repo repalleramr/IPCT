@@ -25,7 +25,6 @@ function safeGet(key) {
 
 // --- GLOBAL VARIABLES ---
 let bets = [];
-let fancyBets = []; 
 let team1Name = "Target A";
 let team2Name = "Target B";
 let editingIndex = -1; 
@@ -78,7 +77,6 @@ function initMatchList() {
 function saveState() {
     const state = {
         bets: bets,
-        fancyBets: fancyBets,
         match: document.getElementById('matchSelect').value,
         t1: team1Name,
         t2: team2Name,
@@ -88,12 +86,11 @@ function saveState() {
 }
 
 function loadSelectedMatch() {
-    if (bets.length > 0 || fancyBets.length > 0) {
-        if (confirm("Initiate new mission? This will burn current core AND phase logs.")) {
-            bets = []; fancyBets = []; editingIndex = -1;
-            document.getElementById('addBetBtn').innerText = "Execute Directive";
+    if (bets.length > 0) {
+        if (confirm("Initiate new mission? This will burn current core logs.")) {
+            bets = []; editingIndex = -1;
+            document.getElementById('addBetBtn').innerText = "EXECUTE DIRECTIVE";
             document.getElementById('finalWinner').value = "";
-            renderFancyTable();
         } else {
             const saved = safeGet('mi6_ledger_data');
             if(saved) { try { document.getElementById('matchSelect').value = JSON.parse(saved).match || ""; } catch(e){} }
@@ -170,9 +167,15 @@ function updateLivePreview() {
 
     t1El.innerText = `${team1Name}: ${t1Preview.toFixed(2)}`;
     t2El.innerText = `${team2Name}: ${t2Preview.toFixed(2)}`;
-    t1El.className = t1Preview > 0 ? 'positive' : (t1Preview < 0 ? 'negative' : 'neutral');
-    t2El.className = t2Preview > 0 ? 'positive' : (t2Preview < 0 ? 'negative' : 'neutral');
+    t1El.className = `exposure-team ${t1Preview > 0 ? 'positive' : (t1Preview < 0 ? 'negative' : 'neutral')}`;
+    t2El.className = `exposure-team ${t2Preview > 0 ? 'positive' : (t2Preview < 0 ? 'negative' : 'neutral')}`;
 }
+
+// Event Listeners for Live Preview
+document.getElementById('entryRate').addEventListener('input', updateLivePreview);
+document.getElementById('entryStake').addEventListener('input', updateLivePreview);
+document.getElementById('entryTeam').addEventListener('change', updateLivePreview);
+document.getElementById('entryAction').addEventListener('change', updateLivePreview);
 
 function addBet() {
     const team = document.getElementById('entryTeam').value;
@@ -186,7 +189,7 @@ function addBet() {
     if (editingIndex !== -1) {
         bets[editingIndex] = { team, action, rate, stake, favPL, oppPL };
         editingIndex = -1; 
-        document.getElementById('addBetBtn').innerText = "Execute Directive"; 
+        document.getElementById('addBetBtn').innerText = "EXECUTE DIRECTIVE"; 
     } else { bets.push({ team, action, rate, stake, favPL, oppPL }); }
 
     document.getElementById('entryRate').value = '';
@@ -195,26 +198,12 @@ function addBet() {
     calculateTable();
 }
 
-function editBet(index) {
-    const bet = bets[index];
-    document.getElementById('entryTeam').value = bet.team;
-    document.getElementById('entryAction').value = bet.action;
-    document.getElementById('entryRate').value = bet.rate;
-    document.getElementById('entryStake').value = bet.stake;
-    editingIndex = index;
-    document.getElementById('addBetBtn').innerText = "Update Directive";
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    updateLivePreview();
-}
-
 function deleteBet(index) {
     if(confirm("Scrub this entry from the ledger?")) {
         bets.splice(index, 1);
         if (editingIndex === index) {
             editingIndex = -1;
-            document.getElementById('addBetBtn').innerText = "Execute Directive";
-            document.getElementById('entryRate').value = '';
-            document.getElementById('entryStake').value = '';
+            document.getElementById('addBetBtn').innerText = "EXECUTE DIRECTIVE";
         } else if (editingIndex > index) { editingIndex--; }
         updateLivePreview();
         calculateTable();
@@ -222,9 +211,9 @@ function deleteBet(index) {
 }
 
 function clearBets() {
-    if(confirm("Confirm Protocol Zero: Burn all CORE data for this mission?")) {
+    if(confirm("Confirm Protocol Zero: Burn all CORE data?")) {
         bets = []; editingIndex = -1;
-        document.getElementById('addBetBtn').innerText = "Execute Directive";
+        document.getElementById('addBetBtn').innerText = "EXECUTE DIRECTIVE";
         document.getElementById('finalWinner').value = "";
         updateLivePreview(); calculateTable();
     }
@@ -252,21 +241,16 @@ function calculateTable() {
         }
 
         const tr = document.createElement('tr');
-        if (index === editingIndex) {
-            tr.style.backgroundColor = "rgba(255, 187, 51, 0.1)";
-            tr.style.borderLeft = "4px solid var(--warning)";
-        }
-
         tr.innerHTML = `
             <td>${index + 1}</td>
-            <td>${bet.team}</td>
-            <td>${bet.action}</td>
+            <td>${bet.team.substring(0,3)}</td>
+            <td style="color:${bet.action==='Play'?'#00e676':'#ff4d4d'}">${bet.action}</td>
             <td>${bet.rate}</td>
             <td>${bet.stake}</td>
             <td>${formatMoney(bet.favPL)}</td>
             <td>${formatMoney(bet.oppPL)}</td>
             <td>${isFinal ? formatMoney(finalPL) : '-'}</td>
-            <td class="action-btns"><button class="btn-warning" onclick="editBet(${index})">Edit</button><button class="btn-danger" onclick="deleteBet(${index})">Burn</button></td>
+            <td><button onclick="deleteBet(${index})" style="background:var(--danger);color:#fff;border:none;padding:4px;border-radius:3px;">X</button></td>
         `;
         tbody.appendChild(tr);
     });
@@ -274,69 +258,9 @@ function calculateTable() {
     saveState();
 }
 
-function addFancyBet() {
-    const phase = document.getElementById('fancyPhase').value;
-    const action = document.getElementById('fancyAction').value;
-    const line = parseFloat(document.getElementById('fancyLine').value);
-    const stake = parseFloat(document.getElementById('fancyStake').value);
-
-    if(!phase || isNaN(line) || isNaN(stake)) { alert("Phase parameters incomplete."); return; }
-    fancyBets.push({ phase, action, line, stake, status: 'Pending', pnl: 0 });
-    document.getElementById('fancyLine').value = '';
-    document.getElementById('fancyStake').value = '';
-    renderFancyTable();
-}
-
-function resolvePhase() {
-    const phaseToResolve = document.getElementById('resolvePhase').value;
-    const actualStr = document.getElementById('resolveScore').value;
-    
-    if(!actualStr) { alert("Please enter the final runs scored."); return; }
-    const actualScore = parseFloat(actualStr);
-    let resolvedCount = 0;
-
-    fancyBets.forEach(bet => {
-        if(bet.phase === phaseToResolve && bet.status === "Pending") {
-            bet.pnl = bet.action === "Yes" ? (actualScore >= bet.line ? bet.stake : -bet.stake) : (actualScore < bet.line ? bet.stake : -bet.stake);
-            bet.status = "Resolved";
-            resolvedCount++;
-        }
-    });
-
-    if(resolvedCount === 0) { alert(`No pending tactics found for ${phaseToResolve}.`); } 
-    else { document.getElementById('resolveScore').value = ''; renderFancyTable(); }
-}
-
-function deleteFancyBet(index) { if(confirm("Scrub this Phase?")) { fancyBets.splice(index, 1); renderFancyTable(); } }
-function clearFancyBets() { if(confirm("Burn all PHASE data?")) { fancyBets = []; renderFancyTable(); } }
-
-function renderFancyTable() {
-    const tbody = document.getElementById('fancyTableBody');
-    tbody.innerHTML = '';
-    let totalFancyPnl = 0;
-
-    fancyBets.forEach((bet, index) => {
-        if(bet.status === "Resolved") { totalFancyPnl += bet.pnl; }
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${bet.phase}</td>
-            <td>${bet.action}</td>
-            <td>${bet.line}</td>
-            <td>${bet.stake}</td>
-            <td style="color: ${bet.status === 'Resolved' ? 'var(--text-muted)' : 'var(--warning)'}; font-weight: bold;">${bet.status}</td>
-            <td>${bet.status === "Resolved" ? formatMoney(bet.pnl) : '-'}</td>
-            <td class="action-btns"><button class="btn-danger" onclick="deleteFancyBet(${index})">Burn</button></td>
-        `;
-        tbody.appendChild(tr);
-    });
-    document.getElementById('fancyNetProfit').innerHTML = formatMoney(totalFancyPnl);
-    saveState();
-}
-
 // ==========================================
-// TAB 3: VERCEL SATELLITE ENGINE
+// VERCEL SATELLITE ENGINE
 // ==========================================
-
 async function pingVercelSatellite() {
     const aiBox = document.getElementById('aiPredictionBox');
     const scoreBox = document.getElementById('liveScoreBox');
@@ -371,23 +295,23 @@ async function pingVercelSatellite() {
         if (data.success) {
             const info = data.match_info;
             
-            let radarHTML = `<div style="margin-top:15px;"><div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:6px;">[BALL HISTORY]</div><div style="display:flex; gap:6px; flex-wrap:wrap;">`;
+            let radarHTML = `<div style="margin-top:15px;"><div style="font-size:0.85rem; color:#8b92a5; margin-bottom:6px;">[BALL HISTORY]</div><div style="display:flex; gap:6px; flex-wrap:wrap;">`;
             
             info.last_balls.forEach(ball => {
                 let bg = '#333'; let color = '#fff';
-                if (ball === 'W') { bg = '#dc3545'; } 
+                if (ball === 'W') { bg = '#ff4d4d'; } 
                 else if (ball === '4') { bg = '#17a2b8'; } 
-                else if (ball === '6') { bg = '#28a745'; } 
+                else if (ball === '6') { bg = '#b366ff'; } 
                 
                 radarHTML += `<span style="background:${bg}; color:${color}; padding:4px 8px; border-radius:4px; font-weight:bold; font-size:0.9rem;">${ball}</span>`;
             });
             radarHTML += `</div></div>`;
 
             scoreBox.innerHTML = `
-                <div style="color: var(--primary); font-weight: bold; margin-bottom: 5px; font-size:0.85rem;">[${info.title}]</div>
+                <div style="color: #00e676; font-weight: bold; margin-bottom: 5px; font-size:0.85rem;">[${info.title}]</div>
                 <div style="font-size: 1.3rem; font-weight: bold; color: #fff;">${info.live_score}</div>
-                <div style="color: var(--warning); font-size: 0.9rem; margin-top: 5px;">${info.status}</div>
-                <div style="color: var(--info); font-size: 0.95rem; margin-top: 5px; font-weight: bold;">BOWLER: ${info.bowler}</div>
+                <div style="color: #ffbb33; font-size: 0.9rem; margin-top: 5px;">${info.status}</div>
+                <div style="color: #66d9ff; font-size: 0.95rem; margin-top: 5px; font-weight: bold;">BOWLER: ${info.bowler}</div>
                 ${radarHTML}
             `;
             aiBox.innerHTML = `> ${info.prediction}`;
@@ -422,7 +346,7 @@ try {
     const savedData = safeGet('mi6_ledger_data');
     if (savedData) {
         const state = JSON.parse(savedData);
-        bets = state.bets || []; fancyBets = state.fancyBets || [];
+        bets = state.bets || [];
         team1Name = state.t1 || "Target A"; team2Name = state.t2 || "Target B";
         const ms = document.getElementById('matchSelect');
         let matchFound = false;
@@ -430,6 +354,6 @@ try {
         if(matchFound) ms.value = state.match; else state.winner = ""; 
         updateDropdowns();
         document.getElementById('finalWinner').value = state.winner || "";
-        calculateTable(); renderFancyTable();
+        calculateTable(); 
     } else { updateDropdowns(); }
 } catch (error) { if(isStorageSafe) localStorage.removeItem('mi6_ledger_data'); updateDropdowns(); }
