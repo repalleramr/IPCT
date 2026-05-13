@@ -340,29 +340,33 @@ async function establishUplink() {
     const matchStr = document.getElementById('matchSelect').value;
     if (!matchStr) { alert("Mission Control: Please select an Active Mission first."); return; }
 
+    // Grab EXACTLY what you selected from the dropdown (e.g. "Mumbai Indians vs Royal Challengers Bengaluru")
+    const selectedTeams = matchStr.split(': ')[1];
+
     const scoreBox = document.getElementById('liveScoreBox');
     const aiBox = document.getElementById('aiPredictionBox');
     
     if (uplinkInterval) clearInterval(uplinkInterval);
     if (liveMatchEngine) clearInterval(liveMatchEngine);
 
-    scoreBox.innerHTML = "> ESTABLISHING ENCRYPTED SAT-UPLINK... [||||      ]";
+    scoreBox.innerHTML = "> ESTABLISHING TARGETED SAT-UPLINK... [||||      ]";
     aiBox.innerHTML = "> IGNITING QUANTUM ORACLE ENGINE... [||||      ]";
 
     async function pingSatellite() {
         try {
-            const response = await fetch(UPLINK_API);
+            // Append your selected teams to the URL so Vercel knows who to look for!
+            const targetUrl = `${UPLINK_API}?teams=${encodeURIComponent(selectedTeams)}`;
+            
+            const response = await fetch(targetUrl);
             const json = await response.json();
 
             if (json.success) {
                 const data = json.match_info;
                 const rawScore = data.live_score;
 
-                // Clean the score string
                 const scoreParts = rawScore.split('|');
                 const cleanScore = scoreParts[1] ? scoreParts[1].trim() : "Data Encrypted";
                 
-                // Telemetry UI
                 let radarHTML = `
                     <div class="radar-box">
                         <div class="radar-title">
@@ -370,20 +374,20 @@ async function establishUplink() {
                             <span class="radar-status">● LIVE</span>
                         </div>
                         <div style="color: var(--text-muted); font-size: 0.85rem; margin-top: 8px;">
-                            > INTERCEPT: ${data.bowler}
+                            > TARGET TRACKING ENGAGED
                         </div>
                     </div>
                 `;
 
                 scoreBox.innerHTML = `
-                    <div style="color: #fff; font-size: 1.1rem; margin-bottom: 5px;">[LIVE UPLINK DECRYPTED]</div>
+                    <div style="color: #fff; font-size: 1.1rem; margin-bottom: 5px;">[${data.title}]</div>
                     <div style="color: var(--primary); font-size: 1.5rem; font-weight: bold; margin-bottom: 5px;">${cleanScore}</div>
-                    <div style="color: #ff9800; font-size: 0.85rem; margin-bottom: 5px;">STATUS: ${data.status}</div>
+                    <div style="color: #33b5e5; font-size: 1rem; font-weight: bold; margin-bottom: 5px;">BOWLER: ${data.bowler}</div>
+                    <div style="color: #ff9800; font-size: 0.8rem; margin-bottom: 5px;">STATUS: ${data.status}</div>
                     <div style="color: #444; font-size: 0.7rem;">SYNC: ${new Date().toLocaleTimeString()}</div>
                     ${radarHTML}
                 `;
 
-                // Oracle AI Projection
                 const currentRuns = parseInt(cleanScore.match(/\d+/) || 0);
                 let tactic = "MAINTAIN HOLD: Wait for further phase alignment.";
                 let oracleColor = "var(--info)";
