@@ -488,6 +488,61 @@ function initializeApp() {
         updateDropdowns(); 
     }
 }
+async function establishUplink() {
+    const aiBox = document.getElementById('aiPredictionBox');
+    const scoreBox = document.getElementById('liveScoreBox');
+    const lastBallsBox = document.getElementById('lastBallsBox');
+    const matchSelect = document.getElementById('matchSelect');
+
+    aiBox.innerHTML = "> INITIATING SECURE UPLINK...";
+    scoreBox.innerHTML = "> CONNECTING TO SATELLITE...";
+
+    // 1. Grab the exact text the user selected in the dropdown
+    const selectedText = matchSelect.options[matchSelect.selectedIndex].text;
+
+    // 2. Extract ONLY the team names (Removes "May 13 (7:30 PM): ")
+    let teamsOnly = selectedText;
+    if (selectedText.includes('): ')) {
+        teamsOnly = selectedText.split('): ')[1].trim(); 
+    }
+
+    try {
+        // 3. Ping the Vercel Satellite (Make sure this matches your actual Vercel URL!)
+        const vercelURL = `https://ipct-v.vercel.app/api/live?teams=${encodeURIComponent(teamsOnly)}`;
+        const response = await fetch(vercelURL);
+        const data = await response.json();
+
+        if (data.success) {
+            const info = data.match_info;
+
+            // 4. Inject the Live Data into your UI
+            scoreBox.innerHTML = `
+                <div style="color: var(--primary); font-weight: bold; margin-bottom: 5px;">[${info.title}]</div>
+                <div style="font-size: 1.3rem; font-weight: bold; color: #fff;">${info.live_score}</div>
+                <div style="color: var(--warning); font-size: 0.9rem; margin-top: 5px;">${info.status}</div>
+                <div style="color: var(--info); font-size: 0.95rem; margin-top: 5px; font-weight: bold;">BOWLER: ${info.bowler}</div>
+            `;
+
+            aiBox.innerHTML = `> ${info.prediction}`;
+
+            // 5. Build the Colored Ball History
+            lastBallsBox.innerHTML = "";
+            info.last_balls.forEach(ball => {
+                let span = document.createElement('span');
+                span.className = 'ball';
+                span.innerText = ball;
+                if (ball === 'W') span.classList.add('w');
+                else if (ball === '4') span.classList.add('four');
+                else if (ball === '6') span.classList.add('six');
+                lastBallsBox.appendChild(span);
+            });
+        }
+    } catch (err) {
+        aiBox.innerHTML = "> UPLINK FAILED. CHECK CONNECTION.";
+        scoreBox.innerHTML = "> ERROR: SATELLITE UNREACHABLE";
+        console.error(err);
+    }
+}
 
 // Force the app to wait for the mobile browser to draw the HTML before firing script
 if (document.readyState === 'loading') {
