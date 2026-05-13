@@ -27,10 +27,9 @@ let bets = [];
 let fancyBets = []; 
 let team1Name = "Target A";
 let team2Name = "Target B";
-let editingIndex = -1; 
 let uplinkInterval = null;
 
-// REAL-WORLD IPL 2026 FIXTURES
+// --- IPL FIXTURES ---
 const iplMatches = [
     "May 11 (7:30 PM): Punjab Kings vs Delhi Capitals",
     "May 12 (7:30 PM): Gujarat Titans vs Sunrisers Hyderabad",
@@ -54,22 +53,10 @@ const iplMatches = [
     "May 31 (7:30 PM) [Final]: TBD vs TBD"
 ];
 
-// --- APP LOGIC ---
-function switchTab(tabId) {
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-    
-    const btn = document.getElementById('btn-' + tabId);
-    const tab = document.getElementById(tabId + 'Tab');
-    
-    if(btn) btn.classList.add('active');
-    if(tab) tab.classList.add('active');
-}
-
+// --- UI HELPERS ---
 function initMatchList() {
     const select = document.getElementById('matchSelect');
     if(!select) return; 
-    
     select.innerHTML = '<option value="">-- Select Active Mission --</option>';
     iplMatches.forEach(match => {
         let opt = document.createElement('option');
@@ -79,56 +66,25 @@ function initMatchList() {
     });
 }
 
-function saveState() {
-    const state = {
-        bets: bets,
-        fancyBets: fancyBets,
-        match: document.getElementById('matchSelect').value,
-        t1: team1Name,
-        t2: team2Name,
-        winner: document.getElementById('finalWinner').value
-    };
-    safeSet('mi6_ledger_data', JSON.stringify(state));
-}
-
 function loadSelectedMatch() {
     const val = document.getElementById('matchSelect').value;
-    if (val) {
-        const teamsPart = val.split(': ')[1];
-        const teams = teamsPart.split(' vs ');
-        team1Name = teams[0] ? teams[0].trim() : "Target A";
-        team2Name = teams[1] ? teams[1].trim() : "Target B";
-    } else { team1Name = "Target A"; team2Name = "Target B"; }
-    
+    if(!val) return;
+
+    const teamsPart = val.split(': ')[1];
+    const teams = teamsPart.split(' vs ');
+    team1Name = teams[0] ? teams[0].trim() : "Target A";
+    team2Name = teams[1] ? teams[1].trim() : "Target B";
+
     if(uplinkInterval) clearInterval(uplinkInterval);
-    
-    const scoreBox = document.getElementById('liveScoreBox');
-    const aiBox = document.getElementById('aiPredictionBox');
-    if(scoreBox) scoreBox.innerHTML = "> AWAITING UPLINK INITIATION...";
-    if(aiBox) aiBox.innerHTML = "> ORACLE ENGINE STANDBY...";
 
-    updateDropdowns();
-    calculateTable();
+    document.getElementById('liveScoreBox').innerHTML = "> Establishing uplink...";
+    document.getElementById('aiPredictionBox').innerHTML = "> Oracle engine warming...";
 
-    // Start live uplink
+    safeSet('mi6_ledger_data', JSON.stringify({ match: val, t1: team1Name, t2: team2Name }));
     startLiveUplink(val);
 }
 
-function updateDropdowns() {
-    const winnerSelect = document.getElementById('finalWinner');
-    if(winnerSelect) {
-        winnerSelect.innerHTML = `<option value="">-- Pending Clearance --</option>
-                                  <option value="${team1Name}">${team1Name}</option>
-                                  <option value="${team2Name}">${team2Name}</option>`;
-    }
-    const entrySelect = document.getElementById('entryTeam');
-    if(entrySelect) {
-        entrySelect.innerHTML = `<option value="${team1Name}">${team1Name}</option>
-                                 <option value="${team2Name}">${team2Name}</option>`;
-    }
-}
-
-// --- LIVE UPLINK FETCH ---
+// --- LIVE FETCH ---
 function startLiveUplink(matchString) {
     if(!matchString) return;
     const scoreBox = document.getElementById('liveScoreBox');
@@ -136,7 +92,7 @@ function startLiveUplink(matchString) {
 
     async function fetchLive() {
         try {
-            const resp = await fetch(`https://your-vercel-app.vercel.app/api/live?teams=${encodeURIComponent(matchString)}`);
+            const resp = await fetch(`https://YOUR-VERCEL-APP.vercel.app/api/live?teams=${encodeURIComponent(matchString)}`);
             const data = await resp.json();
             if(data && data.match_info) {
                 scoreBox.innerHTML = data.match_info.live_score || "No Score";
@@ -150,7 +106,7 @@ function startLiveUplink(matchString) {
     }
 
     fetchLive();
-    uplinkInterval = setInterval(fetchLive, 20000); // every 20s
+    uplinkInterval = setInterval(fetchLive, 20000);
 }
 
 // --- BALL RENDERING ---
@@ -169,28 +125,43 @@ function renderBalls(balls) {
     });
 }
 
-// --- WEB RADAR (iframe injection) ---
+// --- WEB RADAR ---
 function initBrowserRadar() {
     const radarInput = document.getElementById('radarUrlInput');
     const radarBtn = document.getElementById('radarLoadBtn');
     const radarBox = document.getElementById('radarFrameBox');
-
     if(radarBtn && radarInput && radarBox) {
         radarBtn.onclick = () => {
             const url = radarInput.value.trim();
-            if(url) {
-                radarBox.innerHTML = `<iframe src="${url}" style="width:100%;height:100%;border:none;"></iframe>`;
-            }
+            if(url) radarBox.innerHTML = `<iframe src="${url}" style="width:100%;height:100%;border:none;"></iframe>`;
         };
     }
 }
 
-// --- SECURE BOOTSTRAP INIT ---
+// --- BOOTSTRAP ---
 function initializeApp() {
     initMatchList();
     initBrowserRadar();
+
+    const saved = safeGet('mi6_ledger_data');
+    if(saved) {
+        try {
+            const state = JSON.parse(saved);
+            if(state.match) {
+                const ms = document.getElementById('matchSelect');
+                if(ms) ms.value = state.match;
+                team1Name = state.t1 || "Target A";
+                team2Name = state.t2 || "Target B";
+                startLiveUplink(state.match); // auto‑resume uplink after reload
+            }
+        } catch(e){}
+    }
+
     const ms = document.getElementById('matchSelect');
     if(ms) ms.onchange = loadSelectedMatch;
+
+    const establishBtn = document.getElementById('establishLinkBtn');
+    if(establishBtn) establishBtn.onclick = loadSelectedMatch;
 }
 
 if (document.readyState === 'loading') {
