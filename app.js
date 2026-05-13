@@ -32,23 +32,24 @@ let editingIndex = -1;
 let uplinkInterval = null;
 let liveMatchEngine = null;
 
+// CORRECTED REAL-WORLD IPL 2026 SCHEDULE
 const iplMatches = [
     "May 11 (7:30 PM): Punjab Kings vs Delhi Capitals",
     "May 12 (7:30 PM): Gujarat Titans vs Sunrisers Hyderabad",
-    "May 13 (7:30 PM): Mumbai Indians vs Royal Challengers Bengaluru",
-    "May 14 (7:30 PM): Kolkata Knight Riders vs Chennai Super Kings",
-    "May 15 (7:30 PM): Lucknow Super Giants vs Rajasthan Royals",
-    "May 16 (7:30 PM): Delhi Capitals vs Gujarat Titans",
-    "May 17 (3:30 PM): Punjab Kings vs Sunrisers Hyderabad",
-    "May 17 (7:30 PM): Royal Challengers Bengaluru vs Kolkata Knight Riders",
-    "May 18 (7:30 PM): Chennai Super Kings vs Lucknow Super Giants",
-    "May 19 (7:30 PM): Mumbai Indians vs Rajasthan Royals",
-    "May 20 (7:30 PM): Delhi Capitals vs Royal Challengers Bengaluru",
-    "May 21 (7:30 PM): Kolkata Knight Riders vs Gujarat Titans",
-    "May 22 (7:30 PM): Sunrisers Hyderabad vs Chennai Super Kings",
-    "May 23 (7:30 PM): Rajasthan Royals vs Punjab Kings",
-    "May 24 (3:30 PM): Lucknow Super Giants vs Mumbai Indians",
-    "May 24 (7:30 PM): Gujarat Titans vs Royal Challengers Bengaluru",
+    "May 13 (7:30 PM): Royal Challengers Bengaluru vs Kolkata Knight Riders",
+    "May 14 (7:30 PM): Punjab Kings vs Mumbai Indians",
+    "May 15 (7:30 PM): Lucknow Super Giants vs Chennai Super Kings",
+    "May 16 (7:30 PM): Kolkata Knight Riders vs Gujarat Titans",
+    "May 17 (3:30 PM): Punjab Kings vs Royal Challengers Bengaluru",
+    "May 17 (7:30 PM): Delhi Capitals vs Rajasthan Royals",
+    "May 18 (7:30 PM): Chennai Super Kings vs Sunrisers Hyderabad",
+    "May 19 (7:30 PM): Rajasthan Royals vs Lucknow Super Giants",
+    "May 20 (7:30 PM): Kolkata Knight Riders vs Mumbai Indians",
+    "May 21 (7:30 PM): Gujarat Titans vs Chennai Super Kings",
+    "May 22 (7:30 PM): Sunrisers Hyderabad vs Royal Challengers Bengaluru",
+    "May 23 (7:30 PM): Lucknow Super Giants vs Punjab Kings",
+    "May 24 (3:30 PM): Mumbai Indians vs Rajasthan Royals",
+    "May 24 (7:30 PM): Kolkata Knight Riders vs Delhi Capitals",
     "May 26 (7:30 PM) [Qualifier 1]: TBD vs TBD",
     "May 27 (7:30 PM) [Eliminator]: TBD vs TBD",
     "May 29 (7:30 PM) [Qualifier 2]: TBD vs TBD",
@@ -340,9 +341,7 @@ async function establishUplink() {
     const matchStr = document.getElementById('matchSelect').value;
     if (!matchStr) { alert("Mission Control: Please select an Active Mission first."); return; }
 
-    // Grab EXACTLY what you selected from the dropdown (e.g. "Mumbai Indians vs Royal Challengers Bengaluru")
     const selectedTeams = matchStr.split(': ')[1];
-
     const scoreBox = document.getElementById('liveScoreBox');
     const aiBox = document.getElementById('aiPredictionBox');
     
@@ -354,9 +353,7 @@ async function establishUplink() {
 
     async function pingSatellite() {
         try {
-            // Append your selected teams to the URL so Vercel knows who to look for!
             const targetUrl = `${UPLINK_API}?teams=${encodeURIComponent(selectedTeams)}`;
-            
             const response = await fetch(targetUrl);
             const json = await response.json();
 
