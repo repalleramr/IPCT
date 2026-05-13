@@ -171,7 +171,6 @@ function updateLivePreview() {
     t2El.className = `exposure-team ${t2Preview > 0 ? 'positive' : (t2Preview < 0 ? 'negative' : 'neutral')}`;
 }
 
-// Event Listeners for Live Preview
 document.getElementById('entryRate').addEventListener('input', updateLivePreview);
 document.getElementById('entryStake').addEventListener('input', updateLivePreview);
 document.getElementById('entryTeam').addEventListener('change', updateLivePreview);
@@ -259,7 +258,7 @@ function calculateTable() {
 }
 
 // ==========================================
-// VERCEL SATELLITE ENGINE
+// CREX JSON SATELLITE ENGINE
 // ==========================================
 async function pingVercelSatellite() {
     const aiBox = document.getElementById('aiPredictionBox');
@@ -267,9 +266,7 @@ async function pingVercelSatellite() {
     const matchSelect = document.getElementById('matchSelect');
 
     try {
-        if (!matchSelect || matchSelect.selectedIndex === -1) {
-            throw new Error("UI ERROR: Cannot read mission target.");
-        }
+        if (!matchSelect || matchSelect.selectedIndex === -1) throw new Error("UI ERROR: Cannot read mission target.");
         
         const selectedText = matchSelect.options[matchSelect.selectedIndex].text;
         let teamsOnly = selectedText;
@@ -281,10 +278,7 @@ async function pingVercelSatellite() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-        const response = await fetch(vercelURL, { 
-            cache: 'no-store',
-            signal: controller.signal 
-        });
+        const response = await fetch(vercelURL, { cache: 'no-store', signal: controller.signal });
         clearTimeout(timeoutId);
 
         if (!response.ok) throw new Error(`VERCEL BLOCKED: ${response.status}`);
@@ -292,29 +286,59 @@ async function pingVercelSatellite() {
         const rawText = await response.text(); 
         const data = JSON.parse(rawText);
 
-        if (data.success) {
+        if (data.success && data.match_info) {
             const info = data.match_info;
             
-            let radarHTML = `<div style="margin-top:15px;"><div style="font-size:0.85rem; color:#8b92a5; margin-bottom:6px;">[BALL HISTORY]</div><div style="display:flex; gap:6px; flex-wrap:wrap;">`;
+            // 1. Compile Radar (Ball History)
+            let radarHTML = `<div style="margin-top:15px;"><div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:6px;">[RECENT OVERS / RADAR]</div><div style="display:flex; gap:6px; flex-wrap:wrap;">`;
+            let ballsArray = info.last_over && info.last_over.length > 0 ? info.last_over : ["-","-","-","-","-","-"];
             
-            info.last_balls.forEach(ball => {
+            ballsArray.forEach(ball => {
                 let bg = '#333'; let color = '#fff';
                 if (ball === 'W') { bg = '#ff4d4d'; } 
                 else if (ball === '4') { bg = '#17a2b8'; } 
                 else if (ball === '6') { bg = '#b366ff'; } 
-                
                 radarHTML += `<span style="background:${bg}; color:${color}; padding:4px 8px; border-radius:4px; font-weight:bold; font-size:0.9rem;">${ball}</span>`;
             });
             radarHTML += `</div></div>`;
 
+            // 2. Compile Score Status
+            let mainScore = info.live_score ? `${info.live_score} <span style="font-size: 0.9rem; color: var(--text-muted);">(${info.overs} ov)</span>` : (info.result || info.status || "Pre-Match Intel");
+            
+            // 3. Match Details (Toss, Venue)
+            let extraDetails = "";
+            if(info.toss) extraDetails += `<div style="color: #b366ff; font-size: 0.85rem; margin-top: 5px;">> TOSS: ${info.toss}</div>`;
+            if(info.venue) extraDetails += `<div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 3px;">> LOC: ${info.venue}</div>`;
+            
+            // 4. Live Players
+            let playerDetails = "";
+            if(info.striker || info.bowler) {
+                playerDetails += `<div style="margin-top:10px; border-top: 1px solid var(--border-color); padding-top: 8px;">`;
+                if(info.striker) playerDetails += `<div style="color: #00e676; font-size: 0.85rem;">BAT: ${info.striker}*</div>`;
+                if(info.bowler) playerDetails += `<div style="color: #ff4d4d; font-size: 0.85rem;">BOWL: ${info.bowler}</div>`;
+                playerDetails += `</div>`;
+            }
+
+            // 5. Build ScoreBox UI
             scoreBox.innerHTML = `
-                <div style="color: #00e676; font-weight: bold; margin-bottom: 5px; font-size:0.85rem;">[${info.title}]</div>
-                <div style="font-size: 1.3rem; font-weight: bold; color: #fff;">${info.live_score}</div>
-                <div style="color: #ffbb33; font-size: 0.9rem; margin-top: 5px;">${info.status}</div>
-                <div style="color: #66d9ff; font-size: 0.95rem; margin-top: 5px; font-weight: bold;">BOWLER: ${info.bowler}</div>
+                <div style="color: #00e676; font-weight: bold; margin-bottom: 5px; font-size:0.85rem;">[${info.title || 'IPCT TARGET LOCKED'}]</div>
+                <div style="font-size: 1.3rem; font-weight: bold; color: #fff;">${mainScore}</div>
+                <div style="color: #ffbb33; font-size: 0.9rem; margin-top: 5px;">STATUS: ${info.status}</div>
+                ${extraDetails}
+                ${playerDetails}
                 ${radarHTML}
             `;
-            aiBox.innerHTML = `> ${info.prediction}`;
+            
+            // 6. Build Oracle Box UI
+            let rrHTML = "";
+            if(info.current_rr) rrHTML += `CRR: ${info.current_rr} | `;
+            if(info.required_rr) rrHTML += `RRR: ${info.required_rr}`;
+            if(info.target) rrHTML += `<br><span style="color:#00e676">TARGET: ${info.target}</span>`;
+
+            aiBox.innerHTML = `
+                <div style="color: #b366ff; font-size: 1rem; margin-bottom: 5px; font-weight: bold;">> PROJECTION: ${info.prediction || 'Calculating...'}</div>
+                <div style="color: var(--text-muted); font-size: 0.85rem; margin-top: 5px;">${rrHTML}</div>
+            `;
 
         } else {
             aiBox.innerHTML = "> SATELLITE REJECTED.";
@@ -333,7 +357,7 @@ async function pingVercelSatellite() {
 
 function establishUplink() {
     document.getElementById('aiPredictionBox').innerHTML = "> BYPASSING CACHE...";
-    document.getElementById('liveScoreBox').innerHTML = "> PINGING VERCEL SATELLITE...";
+    document.getElementById('liveScoreBox').innerHTML = "> PINGING SATELLITE...";
     
     if (liveMatchEngine) clearInterval(liveMatchEngine);
     pingVercelSatellite();
