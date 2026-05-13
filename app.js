@@ -414,6 +414,48 @@ async function establishUplink() {
     pingSatellite();
     liveMatchEngine = setInterval(pingSatellite, 20000); 
 }
+// Add this logic to your existing establishUplink function in app.js
+async function pingSatellite() {
+    try {
+        const targetUrl = `${UPLINK_API}?teams=${encodeURIComponent(selectedTeams)}`;
+        const response = await fetch(targetUrl);
+        const json = await response.json();
+
+        if (json.success) {
+            const data = json.match_info;
+            
+            scoreBox.innerHTML = `
+                <div style="color: #fff; font-size: 1.1rem; margin-bottom: 5px;">[${data.title}]</div>
+                <div style="color: #00e676; font-size: 1.6rem; font-weight: bold;">${data.live_score}</div>
+                <div style="color: #33b5e5; font-size: 0.9rem; margin: 10px 0;">RECENT: ${data.last_10}</div>
+                <div style="color: #ff9800; font-size: 0.8rem;">BOWLER: ${data.bowler} | ${data.status}</div>
+            `;
+
+            aiBox.innerHTML = `
+                <div style="color: #e1bee7; font-size: 1.1rem; margin-bottom: 5px;">[IPCT ORACLE]</div>
+                <div style="color: #fff; font-size: 0.95rem; border-left: 3px solid #e1bee7; padding-left: 10px;">
+                    > ${data.prediction}
+                </div>
+            `;
+        }
+    } catch (err) { console.error("Uplink Error", err); }
+}
+
+// FULL PAGE RADAR INJECTOR
+function initBrowserRadar() {
+    const tab = document.getElementById('browserTab');
+    if(tab) {
+        tab.innerHTML = `
+            <div style="position: fixed; top: 50px; left: 0; width: 100%; height: calc(100% - 50px); background: #000; z-index: 100;">
+                <div style="display: flex; background: #111; padding: 5px;">
+                    <input type="text" id="radarUrlInput" value="https://crex.live/" style="flex: 1; background: #000; color: #00e676; border: 1px solid #333; padding: 5px;">
+                    <button onclick="document.getElementById('radarFrame').src = document.getElementById('radarUrlInput').value" style="background: #00e676; color: #000; border: none; padding: 5px 15px; font-weight: bold;">GO</button>
+                </div>
+                <iframe id="radarFrame" src="https://crex.live/" style="width: 100%; height: 100%; border: none;"></iframe>
+            </div>
+        `;
+    }
+}
 
 // --- BOOTSTRAP INIT & INJECT BROWSER ROOM ---
 initMatchList();
