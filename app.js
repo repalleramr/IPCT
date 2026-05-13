@@ -1,39 +1,14 @@
-console.log("IPCT System Booting on Android Chrome...");
+// ==========================================
+// IPCT CLASSIFIED LEDGER - CORE SYSTEM LOGIC
+// ==========================================
 
-// --- SAFE STORAGE WRAPPER ---
-let isStorageSafe = false;
-let memoryStorage = {};
-
-try {
-    localStorage.setItem('__test_ping__', '1');
-    localStorage.removeItem('__test_ping__');
-    isStorageSafe = true;
-} catch (error) {
-    isStorageSafe = false;
-    console.log("Incognito Mode: Using temporary RAM.");
-}
-
-function safeSet(key, value) {
-    if (isStorageSafe) { try { localStorage.setItem(key, value); } catch(e){} } 
-    else { memoryStorage[key] = value; }
-}
-
-function safeGet(key) {
-    if (isStorageSafe) { try { return localStorage.getItem(key); } catch(e){ return null; } }
-    return memoryStorage[key] || null;
-}
-
-// --- GLOBAL VARIABLES ---
 let bets = [];
-let fancyBets = []; 
-let team1Name = "Target A";
-let team2Name = "Target B";
-let editingIndex = -1; 
-let uplinkInterval = null;
-let liveMatchEngine = null;
+let fancyBets = [];
+let currentTeam1 = "Team A";
+let currentTeam2 = "Team B";
 
-// REAL-WORLD IPL 2026 FIXTURES
-const iplMatches = [
+// The precise match schedule from your matrix
+const matchSchedule = [
     "May 11 (7:30 PM): Punjab Kings vs Delhi Capitals",
     "May 12 (7:30 PM): Gujarat Titans vs Sunrisers Hyderabad",
     "May 13 (7:30 PM): Royal Challengers Bengaluru vs Kolkata Knight Riders",
@@ -46,448 +21,263 @@ const iplMatches = [
     "May 19 (7:30 PM): Rajasthan Royals vs Lucknow Super Giants",
     "May 20 (7:30 PM): Kolkata Knight Riders vs Mumbai Indians",
     "May 21 (7:30 PM): Gujarat Titans vs Chennai Super Kings",
-    "May 22 (7:30 PM): Sunrisers Hyderabad vs Royal Challengers Bengaluru",
-    "May 23 (7:30 PM): Lucknow Super Giants vs Punjab Kings",
-    "May 24 (3:30 PM): Mumbai Indians vs Rajasthan Royals",
-    "May 24 (7:30 PM): Kolkata Knight Riders vs Delhi Capitals",
-    "May 26 (7:30 PM) [Qualifier 1]: TBD vs TBD",
-    "May 27 (7:30 PM) [Eliminator]: TBD vs TBD",
-    "May 29 (7:30 PM) [Qualifier 2]: TBD vs TBD",
-    "May 31 (7:30 PM) [Final]: TBD vs TBD"
+    "May 22 (7:30 PM): Sunrisers Hyderabad vs Royal Challengers Bengaluru"
 ];
 
-// --- APP LOGIC ---
-function switchTab(tabId) {
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-    
-    const btn = document.getElementById('btn-' + tabId);
-    const tab = document.getElementById(tabId + 'Tab');
-    
-    if(btn) btn.classList.add('active');
-    if(tab) tab.classList.add('active');
-}
-
-function initMatchList() {
+// --- INITIALIZATION ---
+window.onload = () => {
     const select = document.getElementById('matchSelect');
-    if(!select) return; 
-    
-    select.innerHTML = '<option value="">-- Select Active Mission --</option>';
-    
-    iplMatches.forEach(match => {
+    matchSchedule.forEach(match => {
         let opt = document.createElement('option');
         opt.value = match;
-        opt.innerHTML = match;
+        opt.innerText = match;
         select.appendChild(opt);
     });
+    
+    // Set default to today's match
+    select.value = "May 13 (7:30 PM): Royal Challengers Bengaluru vs Kolkata Knight Riders";
+    loadSelectedMatch();
+};
+
+// --- NAVIGATION ---
+function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById(tabId + 'Tab').classList.add('active');
+    document.getElementById('btn-' + tabId).classList.add('active');
 }
 
-function saveState() {
-    const state = {
-        bets: bets,
-        fancyBets: fancyBets,
-        match: document.getElementById('matchSelect').value,
-        t1: team1Name,
-        t2: team2Name,
-        winner: document.getElementById('finalWinner').value
-    };
-    safeSet('ipct_ledger_data', JSON.stringify(state));
-}
-
+// --- MISSION BRIEFING (MATCH SETUP) ---
 function loadSelectedMatch() {
-    if (bets.length > 0 || fancyBets.length > 0) {
-        if (confirm("Initiate new mission? This will burn current core AND phase logs.")) {
-            bets = []; fancyBets = []; editingIndex = -1;
-            document.getElementById('addBetBtn').innerText = "Execute Directive";
-            document.getElementById('finalWinner').value = "";
-            renderFancyTable();
-        } else {
-            const saved = safeGet('ipct_ledger_data');
-            if(saved) { try { document.getElementById('matchSelect').value = JSON.parse(saved).match || ""; } catch(e){} }
-            return;
-        }
-    }
-    const val = document.getElementById('matchSelect').value;
-    if (val) {
-        const teamsPart = val.split(': ')[1];
-        const teams = teamsPart.split(' vs ');
-        team1Name = teams[0] ? teams[0].trim() : "Target A";
-        team2Name = teams[1] ? teams[1].trim() : "Target B";
-    } else { team1Name = "Target A"; team2Name = "Target B"; }
+    const matchText = document.getElementById('matchSelect').value;
     
-    if(uplinkInterval) clearInterval(uplinkInterval);
-    if(liveMatchEngine) clearInterval(liveMatchEngine);
+    // Extract teams from the string (e.g., "RCB vs KKR")
+    let teamsPart = matchText;
+    if (matchText.includes('): ')) {
+        teamsPart = matchText.split('): ')[1];
+    }
     
-    const scoreBox = document.getElementById('liveScoreBox');
-    const aiBox = document.getElementById('aiPredictionBox');
-    if(scoreBox) scoreBox.innerHTML = "> AWAITING UPLINK INITIATION...";
-    if(aiBox) aiBox.innerHTML = "> ORACLE ENGINE STANDBY...";
+    const teams = teamsPart.split(' vs ');
+    currentTeam1 = teams[0] ? teams[0].trim() : "Team A";
+    currentTeam2 = teams[1] ? teams[1].trim() : "Team B";
 
-    updateDropdowns();
-    calculateTable();
-}
-
-function updateDropdowns() {
-    const winnerSelect = document.getElementById('finalWinner');
-    if(winnerSelect) {
-        const currentWinner = winnerSelect.value;
-        winnerSelect.innerHTML = `<option value="">-- Pending Clearance --</option>
-                                  <option value="${team1Name}">${team1Name}</option>
-                                  <option value="${team2Name}">${team2Name}</option>`;
-        if (currentWinner === team1Name || currentWinner === team2Name) winnerSelect.value = currentWinner;
-    }
-
-    const entrySelect = document.getElementById('entryTeam');
-    if(entrySelect) {
-        const currentEntry = entrySelect.value;
-        entrySelect.innerHTML = `<option value="${team1Name}">${team1Name}</option>
-                                 <option value="${team2Name}">${team2Name}</option>`;
-        if (currentEntry === team1Name || currentEntry === team2Name) entrySelect.value = currentEntry;
-    }
-
-    updateLivePreview();
-}
-
-function calculatePreview(action, rate, stake) {
-    let favPL = 0, oppPL = 0;
-    if (!rate || !stake) return { favPL, oppPL };
-    if (action === 'Play') { favPL = stake * (rate / 100); oppPL = -stake; } 
-    else if (action === 'Eat') { favPL = -(stake * (rate / 100)); oppPL = stake; }
-    return { favPL, oppPL };
-}
-
-function getBaseExposure() {
-    let t1Base = 0, t2Base = 0;
-    bets.forEach((b, index) => {
-        if (index === editingIndex) return; 
-        if (b.team === team1Name) { t1Base += b.favPL; t2Base += b.oppPL; } 
-        else { t2Base += b.favPL; t1Base += b.oppPL; }
-    });
-    return { t1Base, t2Base };
-}
-
-function updateLivePreview() {
-    const favTeam = document.getElementById('entryTeam') ? document.getElementById('entryTeam').value : null;
-    if(!favTeam) return;
+    // Populate dropdowns
+    const entryTeam = document.getElementById('entryTeam');
+    const finalWinner = document.getElementById('finalWinner');
     
-    const action = document.getElementById('entryAction').value;
-    const rate = parseFloat(document.getElementById('entryRate').value) || 0;
-    const stake = parseFloat(document.getElementById('entryStake').value) || 0;
+    entryTeam.innerHTML = `<option value="${currentTeam1}">${currentTeam1}</option><option value="${currentTeam2}">${currentTeam2}</option>`;
+    
+    finalWinner.innerHTML = `
+        <option value="Pending">-- Mission Pending --</option>
+        <option value="${currentTeam1}">${currentTeam1} Secured</option>
+        <option value="${currentTeam2}">${currentTeam2} Secured</option>
+    `;
 
-    const { favPL, oppPL } = calculatePreview(action, rate, stake);
-    const { t1Base, t2Base } = getBaseExposure();
-
-    let t1Preview = t1Base + (favTeam === team1Name ? favPL : oppPL);
-    let t2Preview = t2Base + (favTeam === team1Name ? oppPL : favPL);
-
-    if(stake === 0 || rate === 0) { t1Preview = t1Base; t2Preview = t2Base; }
-
-    const t1El = document.getElementById('previewTeam1');
-    const t2El = document.getElementById('previewTeam2');
-
-    if(t1El) {
-        t1El.innerText = `${team1Name}: ${t1Preview.toFixed(2)}`;
-        t1El.className = t1Preview > 0 ? 'positive' : (t1Preview < 0 ? 'negative' : 'neutral');
-    }
-    if(t2El) {
-        t2El.innerText = `${team2Name}: ${t2Preview.toFixed(2)}`;
-        t2El.className = t2Preview > 0 ? 'positive' : (t2Preview < 0 ? 'negative' : 'neutral');
-    }
+    // Clear ledger for new mission
+    bets = [];
+    fancyBets = [];
+    updateCoreUI();
+    updateFancyUI();
 }
 
+// --- CORE MISSION (LAGAI/KHAI MATH) ---
 function addBet() {
     const team = document.getElementById('entryTeam').value;
-    const action = document.getElementById('entryAction').value;
+    const action = document.getElementById('entryAction').value; // 'Play' (Lagai) or 'Eat' (Khai)
     const rate = parseFloat(document.getElementById('entryRate').value);
     const stake = parseFloat(document.getElementById('entryStake').value);
 
-    if (!team || isNaN(rate) || isNaN(stake)) { alert("Mission Control: Required Intel Missing."); return; }
-    const { favPL, oppPL } = calculatePreview(action, rate, stake);
-    
-    if (editingIndex !== -1) {
-        bets[editingIndex] = { team, action, rate, stake, favPL, oppPL };
-        editingIndex = -1; 
-        document.getElementById('addBetBtn').innerText = "Execute Directive"; 
-    } else { bets.push({ team, action, rate, stake, favPL, oppPL }); }
+    if (!rate || !stake || rate <= 0 || stake <= 0) {
+        alert("Classified Error: Invalid Intel or Funds.");
+        return;
+    }
+
+    let winAmt = 0;
+    let lossAmt = 0;
+
+    // Standard Indian Bookmaking Math (Rate is in Paise, e.g., 90)
+    if (action === "Play") {
+        winAmt = stake * (rate / 100);
+        lossAmt = -stake;
+    } else {
+        winAmt = stake;
+        lossAmt = -(stake * (rate / 100));
+    }
+
+    bets.push({
+        id: bets.length + 1,
+        team,
+        action,
+        rate,
+        stake,
+        winAmt,
+        lossAmt
+    });
 
     document.getElementById('entryRate').value = '';
     document.getElementById('entryStake').value = '';
-    updateLivePreview();
-    calculateTable();
+    updateCoreUI();
 }
 
-function editBet(index) {
-    const bet = bets[index];
-    document.getElementById('entryTeam').value = bet.team;
-    document.getElementById('entryAction').value = bet.action;
-    document.getElementById('entryRate').value = bet.rate;
-    document.getElementById('entryStake').value = bet.stake;
-    editingIndex = index;
-    document.getElementById('addBetBtn').innerText = "Update Directive";
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    updateLivePreview();
+function updateCoreUI() {
+    let t1Net = 0;
+    let t2Net = 0;
+    const tbody = document.getElementById('betTableBody');
+    tbody.innerHTML = '';
+
+    bets.forEach((bet, index) => {
+        // Calculate liabilities for live preview
+        if (bet.team === currentTeam1) {
+            t1Net += bet.winAmt;
+            t2Net += bet.lossAmt;
+        } else {
+            t2Net += bet.winAmt;
+            t1Net += bet.lossAmt;
+        }
+
+        // Render Row
+        let tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${index + 1}</td>
+            <td style="color:${bet.team === currentTeam1 ? 'var(--primary)' : 'var(--warning)'}">${bet.team.substring(0,3).toUpperCase()}</td>
+            <td>${bet.action === 'Play' ? 'ADD' : 'DIVERT'}</td>
+            <td>${bet.rate}</td>
+            <td>${bet.stake.toFixed(0)}</td>
+            <td class="profit">+${bet.winAmt.toFixed(2)}</td>
+            <td class="loss">${bet.lossAmt.toFixed(2)}</td>
+            <td>-</td>
+            <td><button onclick="deleteBet(${index})" style="background:var(--danger);color:#fff;border:none;padding:2px 6px;border-radius:3px;font-size:0.7rem;">X</button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    // Update Live Exposure Preview
+    const p1 = document.getElementById('previewTeam1');
+    const p2 = document.getElementById('previewTeam2');
+    p1.innerText = `${currentTeam1.substring(0,3).toUpperCase()}: ${t1Net > 0 ? '+' : ''}${t1Net.toFixed(2)}`;
+    p1.className = t1Net >= 0 ? 'profit' : 'loss';
+    p2.innerText = `${currentTeam2.substring(0,3).toUpperCase()}: ${t2Net > 0 ? '+' : ''}${t2Net.toFixed(2)}`;
+    p2.className = t2Net >= 0 ? 'profit' : 'loss';
+
+    calculateTable(t1Net, t2Net);
 }
 
 function deleteBet(index) {
-    if(confirm("Scrub this entry from the ledger?")) {
-        bets.splice(index, 1);
-        if (editingIndex === index) {
-            editingIndex = -1;
-            document.getElementById('addBetBtn').innerText = "Execute Directive";
-            document.getElementById('entryRate').value = '';
-            document.getElementById('entryStake').value = '';
-        } else if (editingIndex > index) { editingIndex--; }
-        updateLivePreview();
-        calculateTable();
-    }
+    bets.splice(index, 1);
+    updateCoreUI();
 }
 
-function clearBets() {
-    if(confirm("Confirm Protocol Zero: Burn all CORE data for this mission?")) {
-        bets = []; editingIndex = -1;
-        document.getElementById('addBetBtn').innerText = "Execute Directive";
-        document.getElementById('finalWinner').value = "";
-        updateLivePreview(); calculateTable();
-    }
-}
-
-function formatMoney(num) {
-    let str = num.toFixed(2);
-    if (num > 0) return `<span class="positive">+${str}</span>`;
-    if (num < 0) return `<span class="negative">${str}</span>`;
-    return `<span class="neutral">${str}</span>`;
-}
-
-function calculateTable() {
+function calculateTable(t1NetCalc = null, t2NetCalc = null) {
+    const winner = document.getElementById('finalWinner').value;
+    const totalBox = document.getElementById('totalNetProfit');
     const tbody = document.getElementById('betTableBody');
-    if(!tbody) return;
-    const finalWinner = document.getElementById('finalWinner').value;
-    tbody.innerHTML = '';
-    let runningTotal = 0;
 
+    if (winner === "Pending") {
+        totalBox.innerText = "0.00";
+        totalBox.className = "neutral";
+        
+        // Reset rows
+        for(let i=0; i<tbody.rows.length; i++) {
+            tbody.rows[i].cells[7].innerText = "-";
+            tbody.rows[i].cells[7].className = "";
+        }
+        return;
+    }
+
+    let t1Net = 0; let t2Net = 0;
+    
+    // Update individual row results
     bets.forEach((bet, index) => {
-        let finalPL = 0, isFinal = false;
-        if (finalWinner) {
-            isFinal = true;
-            finalPL = (finalWinner === bet.team) ? bet.favPL : bet.oppPL;
-            runningTotal += finalPL;
-        }
+        let isWinner = (bet.team === winner && bet.action === "Play") || (bet.team !== winner && bet.action === "Eat");
+        let resultAmt = isWinner ? bet.winAmt : bet.lossAmt;
+        
+        if (bet.team === currentTeam1) { t1Net += bet.winAmt; t2Net += bet.lossAmt; } 
+        else { t2Net += bet.winAmt; t1Net += bet.lossAmt; }
 
-        const tr = document.createElement('tr');
-        if (index === editingIndex) {
-            tr.style.backgroundColor = "rgba(255, 187, 51, 0.1)";
-            tr.style.borderLeft = "4px solid var(--warning)";
-        }
-
-        tr.innerHTML = `
-            <td>${index + 1}</td>
-            <td>${bet.team}</td>
-            <td>${bet.action}</td>
-            <td>${bet.rate}</td>
-            <td>${bet.stake}</td>
-            <td>${formatMoney(bet.favPL)}</td>
-            <td>${formatMoney(bet.oppPL)}</td>
-            <td>${isFinal ? formatMoney(finalPL) : '-'}</td>
-            <td class="action-btns"><button class="btn-warning" onclick="editBet(${index})">Edit</button><button class="btn-danger" onclick="deleteBet(${index})">Burn</button></td>
-        `;
-        tbody.appendChild(tr);
+        tbody.rows[index].cells[7].innerText = (resultAmt > 0 ? "+" : "") + resultAmt.toFixed(2);
+        tbody.rows[index].cells[7].className = resultAmt > 0 ? "profit" : "loss";
     });
-    document.getElementById('totalNetProfit').innerHTML = formatMoney(runningTotal);
-    saveState();
+
+    // Final total display
+    let finalNet = (winner === currentTeam1) ? t1Net : t2Net;
+    totalBox.innerText = (finalNet > 0 ? "+" : "") + finalNet.toFixed(2);
+    totalBox.className = finalNet > 0 ? "profit" : "loss";
 }
 
+// --- FANCY PHASE MISSIONS ---
 function addFancyBet() {
     const phase = document.getElementById('fancyPhase').value;
-    const action = document.getElementById('fancyAction').value;
+    const action = document.getElementById('fancyAction').value; // Yes or No
     const line = parseFloat(document.getElementById('fancyLine').value);
     const stake = parseFloat(document.getElementById('fancyStake').value);
 
-    if(!phase || isNaN(line) || isNaN(stake)) { alert("Phase parameters incomplete."); return; }
-    fancyBets.push({ phase, action, line, stake, status: 'Pending', pnl: 0 });
+    if (!line || !stake) return alert("Enter Threshold and Funds.");
+
+    fancyBets.push({ id: fancyBets.length, phase, action, line, stake, result: null, net: 0 });
+    
     document.getElementById('fancyLine').value = '';
     document.getElementById('fancyStake').value = '';
-    renderFancyTable();
+    updateFancyUI();
 }
 
 function resolvePhase() {
-    const phaseToResolve = document.getElementById('resolvePhase').value;
-    const actualStr = document.getElementById('resolveScore').value;
-    
-    if(!actualStr) { alert("Please enter the final runs scored."); return; }
-    const actualScore = parseFloat(actualStr);
-    let resolvedCount = 0;
+    const targetPhase = document.getElementById('resolvePhase').value;
+    const actualScore = parseFloat(document.getElementById('resolveScore').value);
+
+    if (isNaN(actualScore)) return alert("Enter Actual Runs Scored.");
 
     fancyBets.forEach(bet => {
-        if(bet.phase === phaseToResolve && bet.status === "Pending") {
-            bet.pnl = bet.action === "Yes" ? (actualScore >= bet.line ? bet.stake : -bet.stake) : (actualScore < bet.line ? bet.stake : -bet.stake);
-            bet.status = "Resolved";
-            resolvedCount++;
+        if (bet.phase === targetPhase && bet.result === null) {
+            if (bet.action === "Yes") {
+                bet.result = (actualScore >= bet.line) ? "Won" : "Lost";
+            } else {
+                bet.result = (actualScore < bet.line) ? "Won" : "Lost";
+            }
+            bet.net = (bet.result === "Won") ? bet.stake : -bet.stake;
         }
     });
 
-    if(resolvedCount === 0) { alert(`No pending tactics found for ${phaseToResolve}.`); } 
-    else { document.getElementById('resolveScore').value = ''; renderFancyTable(); }
+    document.getElementById('resolveScore').value = '';
+    updateFancyUI();
 }
 
-function deleteFancyBet(index) { if(confirm("Scrub this Phase?")) { fancyBets.splice(index, 1); renderFancyTable(); } }
-function clearFancyBets() { if(confirm("Burn all PHASE data?")) { fancyBets = []; renderFancyTable(); } }
+function deleteFancyBet(index) {
+    fancyBets.splice(index, 1);
+    updateFancyUI();
+}
 
-function renderFancyTable() {
+function updateFancyUI() {
     const tbody = document.getElementById('fancyTableBody');
-    if(!tbody) return;
     tbody.innerHTML = '';
-    let totalFancyPnl = 0;
+    let totalFancy = 0;
 
     fancyBets.forEach((bet, index) => {
-        if(bet.status === "Resolved") { totalFancyPnl += bet.pnl; }
-        const tr = document.createElement('tr');
+        totalFancy += bet.net;
+        let tr = document.createElement('tr');
+        let statusColor = bet.result === "Won" ? "profit" : (bet.result === "Lost" ? "loss" : "neutral");
+        
         tr.innerHTML = `
             <td>${bet.phase}</td>
-            <td>${bet.action}</td>
+            <td style="color:${bet.action === 'Yes' ? 'var(--primary)' : 'var(--danger)'}">${bet.action.toUpperCase()}</td>
             <td>${bet.line}</td>
             <td>${bet.stake}</td>
-            <td style="color: ${bet.status === 'Resolved' ? 'var(--text-muted)' : 'var(--warning)'}; font-weight: bold;">${bet.status}</td>
-            <td>${bet.status === "Resolved" ? formatMoney(bet.pnl) : '-'}</td>
-            <td class="action-btns"><button class="btn-danger" onclick="deleteFancyBet(${index})">Burn</button></td>
+            <td class="${statusColor}">${bet.result || "PENDING"}</td>
+            <td class="${statusColor}">${bet.net > 0 ? '+' : ''}${bet.net.toFixed(2)}</td>
+            <td><button onclick="deleteFancyBet(${index})" style="background:var(--danger);color:#fff;border:none;padding:2px 6px;border-radius:3px;font-size:0.7rem;">X</button></td>
         `;
         tbody.appendChild(tr);
     });
-    document.getElementById('fancyNetProfit').innerHTML = formatMoney(totalFancyPnl);
-    saveState();
+
+    const netBox = document.getElementById('fancyNetProfit');
+    netBox.innerText = (totalFancy > 0 ? "+" : "") + totalFancy.toFixed(2);
+    netBox.className = totalFancy > 0 ? "profit" : (totalFancy < 0 ? "loss" : "neutral");
 }
 
-const UPLINK_API = 'https://ipct-v.vercel.app/api/live';
 
-async function establishUplink() {
-    const matchStr = document.getElementById('matchSelect').value;
-    if (!matchStr) { alert("Mission Control: Please select an Active Mission first."); return; }
+// ==========================================
+// SATELLITE UPLINK ENGINE (VERCEL API CONNECTION)
+// ==========================================
 
-    const selectedTeams = matchStr.split(': ')[1];
-    const scoreBox = document.getElementById('liveScoreBox');
-    const aiBox = document.getElementById('aiPredictionBox');
-    
-    if (uplinkInterval) clearInterval(uplinkInterval);
-    if (liveMatchEngine) clearInterval(liveMatchEngine);
-
-    scoreBox.innerHTML = "> ESTABLISHING TARGETED SAT-UPLINK... [||||      ]";
-    aiBox.innerHTML = "> IGNITING QUANTUM ORACLE ENGINE... [||||      ]";
-
-    async function pingSatellite() {
-        try {
-            const targetUrl = `${UPLINK_API}?teams=${encodeURIComponent(selectedTeams)}`;
-            const response = await fetch(targetUrl);
-            const json = await response.json();
-
-            if (json.success) {
-                const data = json.match_info;
-                
-                // Generate Cricbuzz-Style Ball Circles
-                let ballHTML = '';
-                if (data.last_balls && data.last_balls.length > 0) {
-                    ballHTML = '<div style="display:flex; gap:6px; margin:15px 0; overflow-x:auto; padding-bottom:5px;">';
-                    data.last_balls.forEach(ball => {
-                        let bg = "#222"; 
-                        if(ball === 'W') bg = "#f44336";
-                        else if(['4','6'].includes(ball)) bg = "#00e676";
-                        ballHTML += `<span style="min-width:30px; height:30px; border-radius:50%; background:${bg}; display:flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:bold; color:#fff; border:1px solid #444;">${ball}</span>`;
-                    });
-                    ballHTML += '</div>';
-                }
-
-                scoreBox.innerHTML = `
-                    <div style="color: #888; font-size: 0.85rem; margin-bottom: 8px;">[${data.title}]</div>
-                    <div style="color: #00e676; font-size: 1.5rem; font-weight: bold;">${data.live_score}</div>
-                    <div style="color: #ff9800; font-size: 0.9rem; margin-top: 5px;">${data.status}</div>
-                    ${ballHTML}
-                    <div style="color: #33b5e5; font-size: 1rem; font-weight:bold; margin-top:10px;">BOWLER: ${data.bowler}</div>
-                `;
-
-                aiBox.innerHTML = `
-                    <div style="color: #e1bee7; font-size: 1.1rem; margin-bottom: 8px; font-weight:bold; text-transform:uppercase;">IPCT Oracle (10-Ball Momentum)</div>
-                    <div style="color: #fff; font-size: 0.95rem; padding: 12px; background: rgba(225,190,231,0.08); border-left: 4px solid #e1bee7; border-radius: 4px;">
-                        > ${data.prediction}
-                    </div>
-                `;
-            } else {
-                scoreBox.innerHTML = `<div style="color: var(--warning);">> ERROR: DATA ENCRYPTION SYNC FAILED</div>`;
-            }
-        } catch (err) { 
-            scoreBox.innerHTML = `<div style="color: var(--danger);">[UPLINK INTERCEPTED] Connection Failed. Retrying...</div>`;
-            console.error("Telemetry Sync Error", err); 
-        }
-    }
-
-    pingSatellite();
-    liveMatchEngine = setInterval(pingSatellite, 20000); 
-}
-
-// --- FULL-SCREEN WEB RADAR BROWSER ROOM ---
-function initBrowserRadar() {
-    if(document.getElementById('browserTab')) return; // Prevent duplicates
-
-    const firstBtn = document.querySelector('.tab-btn');
-    if(firstBtn) {
-        const btnContainer = firstBtn.parentElement;
-        const newBtn = document.createElement('button');
-        newBtn.className = 'tab-btn';
-        newBtn.id = 'btn-browser';
-        newBtn.innerText = 'WEB RADAR';
-        newBtn.onclick = () => switchTab('browser');
-        btnContainer.appendChild(newBtn);
-    }
-
-    const firstContent = document.querySelector('.tab-content');
-    if(firstContent) {
-        const contentContainer = firstContent.parentElement;
-        const newTab = document.createElement('div');
-        newTab.id = 'browserTab';
-        newTab.className = 'tab-content';
-        newTab.innerHTML = `
-            <div style="position: fixed; top: 50px; left: 0; width: 100%; height: calc(100% - 50px); background: #000; z-index: 2000; display:flex; flex-direction:column;">
-                <div style="background: #111; padding: 10px; display:flex; gap:8px; border-bottom:1px solid #333;">
-                    <input type="text" id="radarUrlInput" value="https://crex.live/" style="flex:1; background:#000; border:1px solid #444; color:#00e676; padding:10px; border-radius:4px; font-size:14px;">
-                    <button onclick="document.getElementById('radarFrame').src = document.getElementById('radarUrlInput').value" style="background:#00e676; color:#000; border:none; padding:10px 18px; font-weight:bold; border-radius:4px;">ENGAGE</button>
-                </div>
-                <iframe id="radarFrame" src="https://crex.live/" style="flex:1; width:100%; border:none; background:#fff;"></iframe>
-            </div>
-        `;
-        contentContainer.appendChild(newTab);
-    }
-}
-
-// --- SECURE BOOTSTRAP INIT ---
-function initializeApp() {
-    initMatchList();
-    initBrowserRadar();
-
-    try {
-        const savedData = safeGet('ipct_ledger_data');
-        if (savedData) {
-            const state = JSON.parse(savedData);
-            bets = state.bets || []; fancyBets = state.fancyBets || [];
-            team1Name = state.t1 || "Target A"; team2Name = state.t2 || "Target B";
-            const ms = document.getElementById('matchSelect');
-            if(ms) {
-                let matchFound = false;
-                for(let i=0; i<ms.options.length; i++) if(ms.options[i].value === state.match) matchFound = true;
-                if(matchFound) ms.value = state.match;
-            }
-            updateDropdowns();
-            const fw = document.getElementById('finalWinner');
-            if(fw) fw.value = state.winner || "";
-            calculateTable(); renderFancyTable();
-        } else { 
-            updateDropdowns(); 
-        }
-        
-        const ms = document.getElementById('matchSelect');
-        if(ms) { ms.onchange = loadSelectedMatch; }
-        
-    } catch (error) { 
-        if(isStorageSafe) localStorage.removeItem('ipct_ledger_data'); 
-        updateDropdowns(); 
-    }
-}
 async function establishUplink() {
     const aiBox = document.getElementById('aiPredictionBox');
     const scoreBox = document.getElementById('liveScoreBox');
@@ -496,18 +286,19 @@ async function establishUplink() {
 
     aiBox.innerHTML = "> INITIATING SECURE UPLINK...";
     scoreBox.innerHTML = "> CONNECTING TO SATELLITE...";
+    lastBallsBox.innerHTML = "";
 
-    // 1. Grab the exact text the user selected in the dropdown
+    // 1. Grab the exact text the user selected in the Briefing Room
     const selectedText = matchSelect.options[matchSelect.selectedIndex].text;
 
-    // 2. Extract ONLY the team names (Removes "May 13 (7:30 PM): ")
+    // 2. Extract ONLY the team names to prevent Vercel URL errors
     let teamsOnly = selectedText;
     if (selectedText.includes('): ')) {
         teamsOnly = selectedText.split('): ')[1].trim(); 
     }
 
     try {
-        // 3. Ping the Vercel Satellite (Make sure this matches your actual Vercel URL!)
+        // 3. Ping the Vercel Satellite Server
         const vercelURL = `https://ipct-v.vercel.app/api/live?teams=${encodeURIComponent(teamsOnly)}`;
         const response = await fetch(vercelURL);
         const data = await response.json();
@@ -515,9 +306,9 @@ async function establishUplink() {
         if (data.success) {
             const info = data.match_info;
 
-            // 4. Inject the Live Data into your UI
+            // 4. Inject the Live Data into the App UI
             scoreBox.innerHTML = `
-                <div style="color: var(--primary); font-weight: bold; margin-bottom: 5px;">[${info.title}]</div>
+                <div style="color: var(--primary); font-weight: bold; margin-bottom: 5px; font-size:0.85rem;">[${info.title}]</div>
                 <div style="font-size: 1.3rem; font-weight: bold; color: #fff;">${info.live_score}</div>
                 <div style="color: var(--warning); font-size: 0.9rem; margin-top: 5px;">${info.status}</div>
                 <div style="color: var(--info); font-size: 0.95rem; margin-top: 5px; font-weight: bold;">BOWLER: ${info.bowler}</div>
@@ -525,28 +316,23 @@ async function establishUplink() {
 
             aiBox.innerHTML = `> ${info.prediction}`;
 
-            // 5. Build the Colored Ball History
-            lastBallsBox.innerHTML = "";
+            // 5. Build the Colored Ball History Display
             info.last_balls.forEach(ball => {
                 let span = document.createElement('span');
                 span.className = 'ball';
                 span.innerText = ball;
+                
+                // Color coding based on cricket events
                 if (ball === 'W') span.classList.add('w');
                 else if (ball === '4') span.classList.add('four');
                 else if (ball === '6') span.classList.add('six');
+                
                 lastBallsBox.appendChild(span);
             });
         }
     } catch (err) {
         aiBox.innerHTML = "> UPLINK FAILED. CHECK CONNECTION.";
         scoreBox.innerHTML = "> ERROR: SATELLITE UNREACHABLE";
-        console.error(err);
+        console.error("IPCT Uplink Error:", err);
     }
-}
-
-// Force the app to wait for the mobile browser to draw the HTML before firing script
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeApp);
-} else {
-    initializeApp();
 }
