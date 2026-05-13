@@ -75,7 +75,7 @@ function initMatchList() {
     iplMatches.forEach(match => {
         let opt = document.createElement('option');
         opt.value = match;
-        opt.innerHTML = match;
+        opt.textContent = match;
         select.appendChild(opt);
     });
 }
@@ -93,18 +93,6 @@ function saveState() {
 }
 
 function loadSelectedMatch() {
-    if (bets.length > 0 || fancyBets.length > 0) {
-        if (confirm("Initiate new mission? This will burn current core AND phase logs.")) {
-            bets = []; fancyBets = []; editingIndex = -1;
-            document.getElementById('addBetBtn').innerText = "Execute Directive";
-            document.getElementById('finalWinner').value = "";
-            renderFancyTable();
-        } else {
-            const saved = safeGet('mi6_ledger_data');
-            if(saved) { try { document.getElementById('matchSelect').value = JSON.parse(saved).match || ""; } catch(e){} }
-            return;
-        }
-    }
     const val = document.getElementById('matchSelect').value;
     if (val) {
         const teamsPart = val.split(': ')[1];
@@ -123,56 +111,32 @@ function loadSelectedMatch() {
 
     updateDropdowns();
     calculateTable();
-
-    // Start live uplink
-    startLiveUplink(val);
 }
 
 function updateDropdowns() {
     const winnerSelect = document.getElementById('finalWinner');
     if(winnerSelect) {
-        const currentWinner = winnerSelect.value;
         winnerSelect.innerHTML = `<option value="">-- Pending Clearance --</option>
                                   <option value="${team1Name}">${team1Name}</option>
                                   <option value="${team2Name}">${team2Name}</option>`;
-        if (currentWinner === team1Name || currentWinner === team2Name) winnerSelect.value = currentWinner;
     }
-
     const entrySelect = document.getElementById('entryTeam');
     if(entrySelect) {
-        const currentEntry = entrySelect.value;
         entrySelect.innerHTML = `<option value="${team1Name}">${team1Name}</option>
                                  <option value="${team2Name}">${team2Name}</option>`;
-        if (currentEntry === team1Name || currentEntry === team2Name) entrySelect.value = currentEntry;
     }
-
-    updateLivePreview();
 }
 
-// --- LIVE UPLINK FETCH ---
-function startLiveUplink(matchString) {
-    if(!matchString) return;
-    const scoreBox = document.getElementById('liveScoreBox');
-    const aiBox = document.getElementById('aiPredictionBox');
-    const ballsBox = document.getElementById('lastBallsBox');
-
-    async function fetchLive() {
-        try {
-            const resp = await fetch(`https://your-vercel-app.vercel.app/api/live?teams=${encodeURIComponent(matchString)}`);
-            const data = await resp.json();
-            if(data && data.match_info) {
-                scoreBox.innerHTML = data.match_info.live_score || "No Score";
-                aiBox.innerHTML = data.match_info.prediction || "No Prediction";
-                renderBalls(data.match_info.last_balls || []);
-            }
-        } catch (err) {
-            scoreBox.innerHTML = "Error uplink...";
-            aiBox.innerHTML = "Oracle offline...";
-        }
-    }
-
-    fetchLive();
-    uplinkInterval = setInterval(fetchLive, 20000); // every 20s
+// --- SECURE BOOTSTRAP INIT ---
+function initializeApp() {
+    initMatchList(); // ensure matches are loaded
+    const ms = document.getElementById('matchSelect');
+    if(ms) ms.onchange = loadSelectedMatch;
 }
 
-// --- BALL RENDERING
+// Wait for DOM
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeApp);
+} else {
+    initializeApp();
+}
