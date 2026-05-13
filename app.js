@@ -36,6 +36,20 @@ function saveData() {
         'ipct_fancy',
         JSON.stringify(fancyBets)
     );
+
+    localStorage.setItem(
+        'ipct_selected_match',
+        document.getElementById(
+            'matchSelect'
+        ).value
+    );
+
+    localStorage.setItem(
+        'ipct_final_winner',
+        document.getElementById(
+            'finalWinner'
+        ).value
+    );
 }
 
 function loadData() {
@@ -60,6 +74,41 @@ function loadData() {
 
         fancyBets =
             JSON.parse(savedFancy);
+    }
+}
+
+function restoreSession() {
+
+    const savedMatch =
+        localStorage.getItem(
+            'ipct_selected_match'
+        );
+
+    const savedWinner =
+        localStorage.getItem(
+            'ipct_final_winner'
+        );
+
+    if (savedMatch) {
+
+        document.getElementById(
+            'matchSelect'
+        ).value = savedMatch;
+    }
+
+    loadSelectedMatch();
+
+    if (savedWinner) {
+
+        setTimeout(() => {
+
+            document.getElementById(
+                'finalWinner'
+            ).value = savedWinner;
+
+            calculateTable();
+
+        }, 100);
     }
 }
 
@@ -105,6 +154,8 @@ function initMatchList() {
             'matchSelect'
         );
 
+    select.innerHTML = '';
+
     iplMatches.forEach(m => {
 
         let o =
@@ -144,6 +195,8 @@ function loadSelectedMatch() {
         teams[1].trim();
 
     updateDropdowns();
+
+    saveData();
 }
 
 /* =========================================
@@ -318,10 +371,31 @@ X
 `;
     });
 
+    saveData();
+
     document.getElementById(
         'totalNetProfit'
     ).innerText =
         total.toFixed(2);
+}
+
+/* =========================================
+   CLEAR BETS
+   ========================================= */
+
+function clearBets() {
+
+    bets = [];
+
+    localStorage.removeItem(
+        'ipct_bets'
+    );
+
+    localStorage.removeItem(
+        'ipct_final_winner'
+    );
+
+    calculateTable();
 }
 
 /* =========================================
@@ -503,6 +577,6 @@ loadData();
 
 initMatchList();
 
-loadSelectedMatch();
+restoreSession();
 
 calculateTable();
