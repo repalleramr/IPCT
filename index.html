@@ -21,19 +21,128 @@
       <button id="btn-uplink" class="tab-btn" onclick="switchTab('uplink')">Sat-Uplink</button>
     </div>
 
-    <!-- MAIN TAB -->
+    <!-- CORE MISSION -->
     <div id="mainTab" class="tab-content active">
-      <!-- Core Mission content -->
-      <!-- ... unchanged from your version ... -->
+      <section class="card">
+        <h3>Briefing Room</h3>
+        <div class="input-group">
+          <select id="matchSelect"></select>
+        </div>
+        <div class="input-group mt-2">
+          <label for="finalWinner">Asset Secured (Outcome):</label>
+          <select id="finalWinner" onchange="calculateTable()"></select>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>Field Operation</h3>
+        <div class="live-preview" id="livePreviewBox">
+          <p><strong>Collateral Liability (Exposure):</strong></p>
+          <div class="preview-teams">
+            <span id="previewTeam1">Target A: 0</span>
+            <span id="previewTeam2">Target B: 0</span>
+          </div>
+        </div>
+        <div class="input-grid">
+          <div class="field">
+            <label>Target Faction</label>
+            <select id="entryTeam"></select>
+          </div>
+          <div class="field">
+            <label>Tactic</label>
+            <select id="entryAction">
+              <option value="Play">Infiltrate (Add)</option>
+              <option value="Eat">Sabotage (Divert)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Intel Accuracy</label>
+            <input type="number" id="entryRate" placeholder="e.g. 91">
+          </div>
+          <div class="field">
+            <label>Mission Funds</label>
+            <input type="number" id="entryStake" placeholder="Amount">
+          </div>
+        </div>
+        <button id="addBetBtn" onclick="addBet()">Execute Directive</button>
+      </section>
+
+      <section class="card">
+        <h3>Classified Ledger</h3>
+        <div class="table-wrapper">
+          <table id="betTable">
+            <thead>
+              <tr>
+                <th>#</th><th>Faction</th><th>Tactic</th><th>Intel</th>
+                <th>Funds</th><th>Yield (Win)</th><th>Yield (Loss)</th>
+                <th>Final Result</th><th>Clearance</th>
+              </tr>
+            </thead>
+            <tbody id="betTableBody"></tbody>
+          </table>
+        </div>
+        <div class="totals-bar">
+          <strong>Mission Balance:</strong>
+          <span id="totalNetProfit" class="neutral">0</span>
+        </div>
+      </section>
     </div>
 
-    <!-- FANCY TAB -->
+    <!-- PHASE GOALS -->
     <div id="fancyTab" class="tab-content">
-      <!-- Phase Goals content -->
-      <!-- ... unchanged from your version ... -->
+      <section class="card">
+        <h3>Deploy Sub-Mission</h3>
+        <div class="input-grid">
+          <div class="field">
+            <label>Phase Frame</label>
+            <select id="fancyPhase">
+              <option value="6 Overs">6 Overs</option>
+              <option value="10 Overs">10 Overs</option>
+              <option value="15 Overs">15 Overs</option>
+              <option value="20 Overs">20 Overs</option>
+              <option value="Custom">Custom Target</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Stance</label>
+            <select id="fancyAction">
+              <option value="No">Deny (No)</option>
+              <option value="Yes">Confirm (Yes)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Threshold (Line)</label>
+            <input type="number" id="fancyLine" placeholder="e.g. 71">
+          </div>
+          <div class="field">
+            <label>Funds (Stake)</label>
+            <input type="number" id="fancyStake" placeholder="Amount">
+          </div>
+        </div>
+        <button onclick="addFancyBet()">Deploy Phase Tactic</button>
+      </section>
+
+      <section class="card">
+        <h3>Phase Ledger</h3>
+        <div class="table-wrapper">
+          <table id="fancyTable">
+            <thead>
+              <tr>
+                <th>Phase</th><th>Stance</th><th>Line</th>
+                <th>Funds</th><th>Status</th><th>Net Result</th><th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="fancyTableBody"></tbody>
+          </table>
+        </div>
+        <div class="totals-bar">
+          <strong>Phase Balance:</strong>
+          <span id="fancyNetProfit" class="neutral">0</span>
+        </div>
+      </section>
     </div>
 
-    <!-- UPLINK TAB -->
+    <!-- SAT-UPLINK -->
     <div id="uplinkTab" class="tab-content">
       <section class="card">
         <h3>Live Field Telemetry</h3>
