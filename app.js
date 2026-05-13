@@ -196,6 +196,8 @@ function loadSelectedMatch() {
 
     updateDropdowns();
 
+    updateLivePreview();
+
     saveData();
 }
 
@@ -240,6 +242,117 @@ ${team1Name}
 ${team2Name}
 </option>
 `;
+}
+
+/* =========================================
+   LIVE EXPOSURE PREVIEW
+   ========================================= */
+
+function updateLivePreview() {
+
+    const team =
+        document.getElementById(
+            'entryTeam'
+        ).value;
+
+    const action =
+        document.getElementById(
+            'entryAction'
+        ).value;
+
+    const rate =
+        parseFloat(
+            document.getElementById(
+                'entryRate'
+            ).value || 0
+        );
+
+    const stake =
+        parseFloat(
+            document.getElementById(
+                'entryStake'
+            ).value || 0
+        );
+
+    let team1Exposure = 0;
+    let team2Exposure = 0;
+
+    // EXISTING BETS
+
+    bets.forEach(b => {
+
+        if (b.team === team1Name) {
+
+            team1Exposure += b.favPL;
+            team2Exposure += b.oppPL;
+        }
+        else {
+
+            team2Exposure += b.favPL;
+            team1Exposure += b.oppPL;
+        }
+    });
+
+    // CURRENT INPUT PREVIEW
+
+    if (
+        rate > 0 &&
+        stake > 0
+    ) {
+
+        let favPL =
+            (action === 'Play')
+            ? stake * (rate / 100)
+            : -(stake * (rate / 100));
+
+        let oppPL =
+            (action === 'Play')
+            ? -stake
+            : stake;
+
+        if (team === team1Name) {
+
+            team1Exposure += favPL;
+            team2Exposure += oppPL;
+        }
+        else {
+
+            team2Exposure += favPL;
+            team1Exposure += oppPL;
+        }
+    }
+
+    const t1 =
+        document.getElementById(
+            'previewTeam1'
+        );
+
+    const t2 =
+        document.getElementById(
+            'previewTeam2'
+        );
+
+    t1.innerHTML =
+`
+${team1Name}:
+${team1Exposure.toFixed(2)}
+`;
+
+    t2.innerHTML =
+`
+${team2Name}:
+${team2Exposure.toFixed(2)}
+`;
+
+    t1.className =
+        team1Exposure >= 0
+        ? 'positive'
+        : 'negative';
+
+    t2.className =
+        team2Exposure >= 0
+        ? 'positive'
+        : 'negative';
 }
 
 /* =========================================
@@ -302,6 +415,16 @@ function addBet() {
     saveData();
 
     calculateTable();
+
+    updateLivePreview();
+
+    document.getElementById(
+        'entryRate'
+    ).value = '';
+
+    document.getElementById(
+        'entryStake'
+    ).value = '';
 }
 
 /* =========================================
@@ -359,7 +482,7 @@ ${winner ? pnl.toFixed(0) : '-'}
 <td>
 
 <button
-onclick="bets.splice(${i},1);saveData();calculateTable()">
+onclick="bets.splice(${i},1);saveData();calculateTable();updateLivePreview();">
 
 X
 
@@ -396,6 +519,8 @@ function clearBets() {
     );
 
     calculateTable();
+
+    updateLivePreview();
 }
 
 /* =========================================
@@ -570,6 +695,38 @@ ${data.error || 'Unknown Error'}
 }
 
 /* =========================================
+   LIVE INPUT EVENTS
+   ========================================= */
+
+document
+.getElementById('entryTeam')
+.addEventListener(
+    'change',
+    updateLivePreview
+);
+
+document
+.getElementById('entryAction')
+.addEventListener(
+    'change',
+    updateLivePreview
+);
+
+document
+.getElementById('entryRate')
+.addEventListener(
+    'input',
+    updateLivePreview
+);
+
+document
+.getElementById('entryStake')
+.addEventListener(
+    'input',
+    updateLivePreview
+);
+
+/* =========================================
    INIT
    ========================================= */
 
@@ -580,3 +737,5 @@ initMatchList();
 restoreSession();
 
 calculateTable();
+
+updateLivePreview();
