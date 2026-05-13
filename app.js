@@ -1,735 +1,127 @@
-// MI6 System Booting...
-let bets = [];
-let fancyBets = [];
-
-let team1Name = "Target A";
-let team2Name = "Target B";
-
-let editingIndex = -1;
+// IPCT CLASSIFIED LEDGER
+let bets = []; let fancyBets = [];
+let team1Name = "Target A"; let team2Name = "Target B";
 let liveMatchEngine = null;
 
 const iplMatches = [
-
     "May 11 (7:30 PM): Punjab Kings vs Delhi Capitals",
-
     "May 12 (7:30 PM): Gujarat Titans vs Sunrisers Hyderabad",
-
     "May 13 (7:30 PM): Royal Challengers Bengaluru vs Kolkata Knight Riders",
-
     "May 14 (7:30 PM): Punjab Kings vs Mumbai Indians",
-
-    "May 15 (7:30 PM): Lucknow Super Giants vs Chennai Super Kings"
+    "May 15 (7:30 PM): Lucknow Super Giants vs Chennai Super Kings",
+    "May 16 (7:30 PM): Kolkata Knight Riders vs Gujarat Titans",
+    "May 17 (3:30 PM): Punjab Kings vs Royal Challengers Bengaluru",
+    "May 17 (7:30 PM): Delhi Capitals vs Rajasthan Royals",
+    "May 18 (7:30 PM): Chennai Super Kings vs Sunrisers Hyderabad",
+    "May 19 (7:30 PM): Rajasthan Royals vs Lucknow Super Giants",
+    "May 20 (7:30 PM): Kolkata Knight Riders vs Mumbai Indians",
+    "May 21 (7:30 PM): Gujarat Titans vs Chennai Super Kings",
+    "May 22 (7:30 PM): Sunrisers Hyderabad vs Royal Challengers Bengaluru",
+    "May 23 (7:30 PM): Lucknow Super Giants vs Punjab Kings",
+    "May 24 (3:30 PM): Mumbai Indians vs Rajasthan Royals",
+    "May 24 (7:30 PM): Kolkata Knight Riders vs Delhi Capitals",
+    "May 26 (7:30 PM) [Qualifier 1]: TBD vs TBD",
+    "May 27 (7:30 PM) [Eliminator]: TBD vs TBD",
+    "May 29 (7:30 PM) [Qualifier 2]: TBD vs TBD",
+    "May 31 (7:30 PM) [Final]: TBD vs TBD"
 ];
 
-/* =========================================
-   LOCAL STORAGE
-   ========================================= */
-
-function saveData() {
-
-    localStorage.setItem(
-        'ipct_bets',
-        JSON.stringify(bets)
-    );
-
-    localStorage.setItem(
-        'ipct_selected_match',
-        document.getElementById(
-            'matchSelect'
-        ).value
-    );
-
-    localStorage.setItem(
-        'ipct_final_winner',
-        document.getElementById(
-            'finalWinner'
-        ).value
-    );
-}
-
-function loadData() {
-
-    const savedBets =
-        localStorage.getItem(
-            'ipct_bets'
-        );
-
-    if (savedBets) {
-
-        bets =
-            JSON.parse(savedBets);
-    }
-}
-
-function restoreSession() {
-
-    const savedMatch =
-        localStorage.getItem(
-            'ipct_selected_match'
-        );
-
-    const savedWinner =
-        localStorage.getItem(
-            'ipct_final_winner'
-        );
-
-    if (savedMatch) {
-
-        document.getElementById(
-            'matchSelect'
-        ).value = savedMatch;
-    }
-
-    loadSelectedMatch();
-
-    if (savedWinner) {
-
-        setTimeout(() => {
-
-            document.getElementById(
-                'finalWinner'
-            ).value = savedWinner;
-
-            calculateTable();
-
-        }, 100);
-    }
-}
-
-/* =========================================
-   TAB SWITCH
-   ========================================= */
-
 function switchTab(tabId) {
-
-    document
-        .querySelectorAll('.tab-btn')
-        .forEach(btn =>
-            btn.classList.remove('active')
-        );
-
-    document
-        .querySelectorAll('.tab-content')
-        .forEach(c =>
-            c.classList.remove('active')
-        );
-
-    document
-        .getElementById(
-            'btn-' + tabId
-        )
-        .classList.add('active');
-
-    document
-        .getElementById(
-            tabId + 'Tab'
-        )
-        .classList.add('active');
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.getElementById('btn-' + tabId).classList.add('active');
+    document.getElementById(tabId + 'Tab').classList.add('active');
 }
-
-/* =========================================
-   MATCH LIST
-   ========================================= */
 
 function initMatchList() {
-
-    const select =
-        document.getElementById(
-            'matchSelect'
-        );
-
-    select.innerHTML = '';
-
-    iplMatches.forEach(m => {
-
-        let o =
-            document.createElement(
-                'option'
-            );
-
-        o.value = m;
-
-        o.innerHTML = m;
-
-        select.appendChild(o);
-    });
+    const select = document.getElementById('matchSelect');
+    if (!select) return;
+    select.innerHTML = "";
+    iplMatches.forEach(m => { let o = document.createElement('option'); o.value = m; o.innerHTML = m; select.appendChild(o); });
 }
-
-/* =========================================
-   LOAD MATCH
-   ========================================= */
 
 function loadSelectedMatch() {
-
-    const val =
-        document.getElementById(
-            'matchSelect'
-        ).value;
-
-    const teamsPart =
-        val.split(': ')[1];
-
-    const teams =
-        teamsPart.split(' vs ');
-
-    team1Name =
-        teams[0].trim();
-
-    team2Name =
-        teams[1].trim();
-
+    const val = document.getElementById('matchSelect').value;
+    const teamsPart = val.split(': ')[1];
+    const teams = teamsPart.split(' vs ');
+    team1Name = teams[0].trim(); team2Name = teams[1].trim();
     updateDropdowns();
-
-    calculateTable();
-
-    updateLivePreview();
-
-    saveData();
 }
-
-/* =========================================
-   UPDATE DROPDOWNS
-   ========================================= */
 
 function updateDropdowns() {
-
-    const w =
-        document.getElementById(
-            'finalWinner'
-        );
-
-    w.innerHTML =
-`
-<option value="">
--- Pending --
-</option>
-
-<option value="${team1Name}">
-${team1Name}
-</option>
-
-<option value="${team2Name}">
-${team2Name}
-</option>
-`;
-
-    const e =
-        document.getElementById(
-            'entryTeam'
-        );
-
-    e.innerHTML =
-`
-<option value="${team1Name}">
-${team1Name}
-</option>
-
-<option value="${team2Name}">
-${team2Name}
-</option>
-`;
+    const w = document.getElementById('finalWinner');
+    w.innerHTML = `<option value="">-- Pending --</option><option value="${team1Name}">${team1Name}</option><option value="${team2Name}">${team2Name}</option>`;
+    const e = document.getElementById('entryTeam');
+    e.innerHTML = `<option value="${team1Name}">${team1Name}</option><option value="${team2Name}">${team2Name}</option>`;
 }
-
-/* =========================================
-   LIVE EXPOSURE PREVIEW
-   ========================================= */
-
-function updateLivePreview() {
-
-    const team =
-        document.getElementById(
-            'entryTeam'
-        ).value;
-
-    const action =
-        document.getElementById(
-            'entryAction'
-        ).value;
-
-    const rate =
-        parseFloat(
-            document.getElementById(
-                'entryRate'
-            ).value || 0
-        );
-
-    const stake =
-        parseFloat(
-            document.getElementById(
-                'entryStake'
-            ).value || 0
-        );
-
-    // START WITH EXISTING REAL EXPOSURE
-
-    let team1Exposure = 0;
-    let team2Exposure = 0;
-
-    bets.forEach(b => {
-
-        if (b.team === team1Name) {
-
-            team1Exposure += b.favPL;
-            team2Exposure += b.oppPL;
-        }
-        else {
-
-            team2Exposure += b.favPL;
-            team1Exposure += b.oppPL;
-        }
-    });
-
-    // PREVIEW ONLY CURRENT UNSAVED ENTRY
-
-    if (
-        rate > 0 &&
-        stake > 0
-    ) {
-
-        let favPL =
-            (action === 'Play')
-            ? stake * (rate / 100)
-            : -(stake * (rate / 100));
-
-        let oppPL =
-            (action === 'Play')
-            ? -stake
-            : stake;
-
-        if (team === team1Name) {
-
-            team1Exposure += favPL;
-            team2Exposure += oppPL;
-        }
-        else {
-
-            team2Exposure += favPL;
-            team1Exposure += oppPL;
-        }
-    }
-
-    document.getElementById(
-        'previewTeam1'
-    ).innerHTML =
-`
-${team1Name}: ${team1Exposure.toFixed(2)}
-`;
-
-    document.getElementById(
-        'previewTeam2'
-    ).innerHTML =
-`
-${team2Name}: ${team2Exposure.toFixed(2)}
-`;
-
-    document.getElementById(
-        'previewTeam1'
-    ).className =
-        team1Exposure >= 0
-        ? 'positive'
-        : 'negative';
-
-    document.getElementById(
-        'previewTeam2'
-    ).className =
-        team2Exposure >= 0
-        ? 'positive'
-        : 'negative';
-}
-
-/* =========================================
-   ADD BET
-   ========================================= */
 
 function addBet() {
-
-    const team =
-        document.getElementById(
-            'entryTeam'
-        ).value;
-
-    const action =
-        document.getElementById(
-            'entryAction'
-        ).value;
-
-    const rate =
-        parseFloat(
-            document.getElementById(
-                'entryRate'
-            ).value
-        );
-
-    const stake =
-        parseFloat(
-            document.getElementById(
-                'entryStake'
-            ).value
-        );
-
-    if (
-        isNaN(rate) ||
-        isNaN(stake)
-    ) return;
-
-    let favPL =
-        (action === 'Play')
-        ? stake * (rate / 100)
-        : -(stake * (rate / 100));
-
-    let oppPL =
-        (action === 'Play')
-        ? -stake
-        : stake;
-
-    bets.push({
-
-        team,
-        action,
-        rate,
-        stake,
-        favPL,
-        oppPL
-    });
-
-    // CLEAR INPUTS FIRST
-    // THIS FIXES DOUBLE EXPOSURE BUG
-
-    document.getElementById(
-        'entryRate'
-    ).value = '';
-
-    document.getElementById(
-        'entryStake'
-    ).value = '';
-
-    saveData();
-
+    const team = document.getElementById('entryTeam').value;
+    const action = document.getElementById('entryAction').value;
+    const rate = parseFloat(document.getElementById('entryRate').value);
+    const stake = parseFloat(document.getElementById('entryStake').value);
+    if (isNaN(rate) || isNaN(stake)) return;
+    let favPL = (action === 'Play') ? stake * (rate / 100) : -(stake * (rate / 100));
+    let oppPL = (action === 'Play') ? -stake : stake;
+    bets.push({ team, action, rate, stake, favPL, oppPL });
     calculateTable();
-
-    updateLivePreview();
 }
-
-/* =========================================
-   CALCULATE TABLE
-   ========================================= */
 
 function calculateTable() {
-
-    const tbody =
-        document.getElementById(
-            'betTableBody'
-        );
-
-    const winner =
-        document.getElementById(
-            'finalWinner'
-        ).value;
-
-    tbody.innerHTML = '';
-
-    let total = 0;
-
+    const tbody = document.getElementById('betTableBody');
+    const winner = document.getElementById('finalWinner').value;
+    tbody.innerHTML = ''; let total = 0;
     bets.forEach((b, i) => {
-
-        let pnl =
-            (winner === b.team)
-            ? b.favPL
-            : b.oppPL;
-
-        if (winner)
-            total += pnl;
-
-        tbody.innerHTML +=
-`
-<tr>
-
-<td>${i+1}</td>
-
-<td>${b.team}</td>
-
-<td>${b.action}</td>
-
-<td>${b.rate}</td>
-
-<td>${b.stake}</td>
-
-<td>${b.favPL.toFixed(0)}</td>
-
-<td>${b.oppPL.toFixed(0)}</td>
-
-<td>
-${winner ? pnl.toFixed(0) : '-'}
-</td>
-
-<td>
-
-<button
-onclick="deleteBet(${i})">
-
-X
-
-</button>
-
-</td>
-
-</tr>
-`;
+        let pnl = (winner === b.team) ? b.favPL : b.oppPL;
+        if (winner) total += pnl;
+        tbody.innerHTML += `<tr><td>${i+1}</td><td>${b.team}</td><td>${b.action}</td><td>${b.rate}</td><td>${b.stake}</td><td>${b.favPL.toFixed(0)}</td><td>${b.oppPL.toFixed(0)}</td><td>${winner ? pnl.toFixed(0) : '-'}</td><td><button onclick="bets.splice(${i},1);calculateTable()" style="background:var(--danger);color:#fff;border:none;padding:2px 6px;border-radius:3px;">X</button></td></tr>`;
     });
-
-    saveData();
-
-    document.getElementById(
-        'totalNetProfit'
-    ).innerText =
-        total.toFixed(2);
+    document.getElementById('totalNetProfit').innerText = total.toFixed(2);
 }
-
-/* =========================================
-   DELETE BET
-   ========================================= */
-
-function deleteBet(index) {
-
-    bets.splice(index, 1);
-
-    saveData();
-
-    calculateTable();
-
-    updateLivePreview();
-}
-
-/* =========================================
-   CLEAR BETS
-   ========================================= */
-
-function clearBets() {
-
-    bets = [];
-
-    localStorage.removeItem(
-        'ipct_bets'
-    );
-
-    localStorage.removeItem(
-        'ipct_final_winner'
-    );
-
-    calculateTable();
-
-    updateLivePreview();
-}
-
-/* =========================================
-   LIVE SATELLITE ENGINE
-   ========================================= */
 
 async function establishUplink() {
+    const scoreBox = document.getElementById('liveScoreBox');
+    const aiBox = document.getElementById('aiPredictionBox');
+    const val = document.getElementById('matchSelect').value;
+    const teamString = val.split(': ')[1].trim();
 
-    const scoreBox =
-        document.getElementById(
-            'liveScoreBox'
-        );
-
-    const aiBox =
-        document.getElementById(
-            'aiPredictionBox'
-        );
-
-    const val =
-        document.getElementById(
-            'matchSelect'
-        ).value;
-
-    const teamString =
-        val.split(': ')[1].trim();
-
-    scoreBox.innerHTML =
-        "> PINGING VERCEL SATELLITE...";
-
-    aiBox.innerHTML =
-        "> BYPASSING CACHE...";
+    scoreBox.innerHTML = "> INITIATING SATELLITE HANDSHAKE...";
+    aiBox.innerHTML = "> ORACLE ENGINE PURGING CACHE...";
 
     try {
+        const url = `https://ipct-v.vercel.app/api/live?teams=${encodeURIComponent(teamString)}&nocache=${Date.now()}`;
+        const res = await fetch(url);
+        const data = await res.json();
 
-        const url =
-`https://ipct-v.vercel.app/api/live?teams=${encodeURIComponent(teamString)}&cache=${Date.now()}`;
+        if (data.success) {
+            const info = data.match_info;
+            
+            // Build Ball History with dynamic colors
+            let ballsHtml = `<div style="display:flex; gap:5px; margin-top:10px;">`;
+            info.last_balls.forEach(b => {
+                let color = "#444";
+                if(b === 'W') color = "#ff4444";
+                if(b === '4') color = "#00ffcc";
+                if(b === '6') color = "#8a2be2";
+                ballsHtml += `<span style="background:${color}; padding:2px 8px; border-radius:3px; font-weight:bold; color:#fff;">${b}</span>`;
+            });
+            ballsHtml += `</div>`;
 
-        const res =
-            await fetch(url);
-
-        const data =
-            await res.json();
-
-        if (
-            data.success &&
-            data.match_info
-        ) {
-
-            const info =
-                data.match_info;
-
-            scoreBox.innerHTML =
-`
-
-<b>[${info.title || 'IPL LIVE INTEL'}]</b>
-
-<br><br>
-
-<b>STATUS:</b>
-<br>
-${info.status || 'Unavailable'}
-
-<br><br>
-
-<b>SCORE:</b>
-<br>
-${info.live_score || 'Awaiting Play'}
-
-<br><br>
-
-<b>OVERS:</b>
-<br>
-${info.overs || '-'}
-
-<br><br>
-
-<b>BATSMAN:</b>
-<br>
-${info.striker || 'Unavailable'}
-
-<br><br>
-
-<b>NON-STRIKER:</b>
-<br>
-${info.non_striker || 'Unavailable'}
-
-<br><br>
-
-<b>BOWLER:</b>
-<br>
-${info.bowler || 'Unavailable'}
-
-<br><br>
-
-<b>TOSS:</b>
-<br>
-${info.toss || 'Pending'}
-
-<br><br>
-
-<b>RESULT:</b>
-<br>
-${info.result || 'Match In Progress'}
-
-<br><br>
-
-<b>VENUE:</b>
-<br>
-${info.venue || 'Unavailable'}
-
-<br><br>
-
-<b>SOURCE:</b>
-<br>
-${info.source || 'Unknown'}
-`;
-
-            aiBox.innerHTML =
-`
-
-> ${info.prediction || 'Balanced'}
-
-<br><br>
-
-MATCH STATE:
-<br>
-
-${info.match_state || 'Unknown'}
-
-<br><br>
-
-LAST BALL:
-<br>
-
-${info.last_ball || '-'}
-
-<br><br>
-
-LAST OVER:
-<br>
-
-${info.last_over && info.last_over.length
-? info.last_over.join(' ')
-: '-'}
-`;
+            scoreBox.innerHTML = `
+                <div style="color:var(--primary); font-weight:bold; margin-bottom:5px;">[${info.title}]</div>
+                <div style="font-size:1.4rem;">${info.live_score}</div>
+                <div style="color:var(--warning); margin-top:5px;">${info.status}</div>
+                <div style="font-size:0.8rem; margin-top:5px;">BOWLER: ${info.bowler}</div>
+                ${ballsHtml}
+            `;
+            aiBox.innerHTML = `> ${info.prediction}`;
+        } else {
+            scoreBox.innerHTML = `> UPLINK ERROR: ${data.error}`;
         }
-        else {
-
-            scoreBox.innerHTML =
-`
-> SATELLITE ERROR:
-${data.error || 'Unknown Error'}
-`;
-
-            aiBox.innerHTML =
-                '> ORACLE OFFLINE';
-        }
-
-    }
-    catch (e) {
-
-        scoreBox.innerHTML =
-            '> UPLINK FAILED: Check Internet.';
-
-        aiBox.innerHTML =
-            '> NETWORK FAILURE';
+    } catch (e) {
+        scoreBox.innerHTML = `> CONNECTION TIMEOUT.`;
     }
 }
 
-/* =========================================
-   LIVE INPUT EVENTS
-   ========================================= */
-
-document
-.getElementById('entryTeam')
-.addEventListener(
-    'change',
-    updateLivePreview
-);
-
-document
-.getElementById('entryAction')
-.addEventListener(
-    'change',
-    updateLivePreview
-);
-
-document
-.getElementById('entryRate')
-.addEventListener(
-    'input',
-    updateLivePreview
-);
-
-document
-.getElementById('entryStake')
-.addEventListener(
-    'input',
-    updateLivePreview
-);
-
-/* =========================================
-   INIT
-   ========================================= */
-
-loadData();
-
 initMatchList();
-
-restoreSession();
-
-calculateTable();
-
-updateLivePreview();
+loadSelectedMatch();
