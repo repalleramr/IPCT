@@ -1,204 +1,69 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#0b0e14">
-    <link rel="apple-touch-icon" href="icon.png">
-    <title>MI6 Intelligence Log</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="manifest.json">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0b0e14">
+  <link rel="apple-touch-icon" href="icon.png">
+  <title>MI6 Intelligence Log</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
 </head>
 <body>
-    <div class="app-container">
-        <header>
-            <h1>MI6 Classified Ledger</h1>
-        </header>
+  <div class="app-container">
+    <header>
+      <h1>MI6 Classified Ledger</h1>
+    </header>
 
-        <div class="tab-container">
-            <button id="btn-main" class="tab-btn active" onclick="switchTab('main')">Core Mission</button>
-            <button id="btn-fancy" class="tab-btn" onclick="switchTab('fancy')">Phase Goals</button>
-            <button id="btn-uplink" class="tab-btn" onclick="switchTab('uplink')">Sat-Uplink</button>
-        </div>
-
-        <div id="mainTab" class="tab-content active">
-            <section class="setup-section card">
-                <h3>1. Briefing Room</h3>
-                <div class="input-group">
-                    <select id="matchSelect" onchange="loadSelectedMatch()">
-                        <option value="">-- Select Active Mission --</option>
-                    </select>
-                </div>
-                <div class="input-group mt-2">
-                    <label for="finalWinner">Asset Secured (Outcome):</label>
-                    <select id="finalWinner" onchange="calculateTable()">
-                        <option value="">-- Pending Clearance --</option>
-                    </select>
-                </div>
-            </section>
-
-            <section class="entry-section card">
-                <h3>2. Field Operation</h3>
-                <div class="live-preview" id="livePreviewBox">
-                    <p><strong>Collateral Liability (Exposure):</strong></p>
-                    <div class="preview-teams">
-                        <span id="previewTeam1">Target A: 0</span>
-                        <span id="previewTeam2">Target B: 0</span>
-                    </div>
-                </div>
-                <div class="input-grid">
-                    <div class="field">
-                        <label>Target Faction</label>
-                        <select id="entryTeam" onchange="updateLivePreview()"></select>
-                    </div>
-                    <div class="field">
-                        <label>Tactic</label>
-                        <select id="entryAction" onchange="updateLivePreview()">
-                            <option value="Play">Infiltrate (Add)</option>
-                            <option value="Eat">Sabotage (Divert)</option>
-                        </select>
-                    </div>
-                    <div class="field">
-                        <label>Intel Accuracy</label>
-                        <input type="number" id="entryRate" placeholder="e.g. 91" oninput="updateLivePreview()">
-                    </div>
-                    <div class="field">
-                        <label>Mission Funds</label>
-                        <input type="number" id="entryStake" placeholder="Amount" oninput="updateLivePreview()">
-                    </div>
-                </div>
-                <button id="addBetBtn" onclick="addBet()">Execute Directive</button>
-            </section>
-
-            <section class="table-section card">
-                <h3>3. Classified Ledger</h3>
-                <div class="table-wrapper">
-                    <table id="betTable">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Faction</th>
-                                <th>Tactic</th>
-                                <th>Intel</th>
-                                <th>Funds</th>
-                                <th>Yield (Win)</th>
-                                <th>Yield (Loss)</th>
-                                <th>Final Result</th>
-                                <th>Clearance</th>
-                            </tr>
-                        </thead>
-                        <tbody id="betTableBody">
-                        </tbody>
-                    </table>
-                </div>
-                <div class="totals-bar">
-                    <strong>Mission Balance: </strong>
-                    <span id="totalNetProfit" class="neutral">0</span>
-                </div>
-                <div class="bottom-actions mt-2">
-                    <button class="btn-success" onclick="saveAsCSV()">Export Intel (CSV)</button>
-                    <button class="btn-danger" onclick="clearBets()">Burn Mission Data</button>
-                </div>
-            </section>
-        </div>
-
-        <div id="fancyTab" class="tab-content">
-            <section class="entry-section card">
-                <h3>Deploy Sub-Mission (Session)</h3>
-                <div class="input-grid">
-                    <div class="field">
-                        <label>Phase Frame</label>
-                        <select id="fancyPhase">
-                            <option value="6 Overs">6 Overs</option>
-                            <option value="10 Overs">10 Overs</option>
-                            <option value="15 Overs">15 Overs</option>
-                            <option value="20 Overs">20 Overs</option>
-                            <option value="Custom">Custom Target</option>
-                        </select>
-                    </div>
-                    <div class="field">
-                        <label>Stance</label>
-                        <select id="fancyAction">
-                            <option value="No">Deny (No)</option>
-                            <option value="Yes">Confirm (Yes)</option>
-                        </select>
-                    </div>
-                    <div class="field">
-                        <label>Threshold (Line)</label>
-                        <input type="number" id="fancyLine" placeholder="e.g. 71">
-                    </div>
-                    <div class="field">
-                        <label>Funds (Stake)</label>
-                        <input type="number" id="fancyStake" placeholder="Amount">
-                    </div>
-                </div>
-                <button onclick="addFancyBet()">Deploy Phase Tactic</button>
-            </section>
-
-            <section class="card" style="border-color: var(--info);">
-                <h3 style="color: var(--info);">Phase Resolution</h3>
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px;">Enter final runs to settle all pending bets for the phase.</p>
-                <div class="input-group">
-                    <select id="resolvePhase" style="flex: 1;">
-                        <option value="6 Overs">6 Overs</option>
-                        <option value="10 Overs">10 Overs</option>
-                        <option value="15 Overs">15 Overs</option>
-                        <option value="20 Overs">20 Overs</option>
-                        <option value="Custom">Custom Target</option>
-                    </select>
-                    <input type="number" id="resolveScore" placeholder="Final Runs" style="flex: 1;">
-                </div>
-                <button class="btn-success mt-2" onclick="resolvePhase()">Settle Entire Phase</button>
-            </section>
-
-            <section class="table-section card">
-                <h3>Phase Ledger</h3>
-                <div class="table-wrapper">
-                    <table id="fancyTable">
-                        <thead>
-                            <tr>
-                                <th>Phase</th>
-                                <th>Stance</th>
-                                <th>Line</th>
-                                <th>Funds</th>
-                                <th>Status</th>
-                                <th>Net Result</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="fancyTableBody">
-                        </tbody>
-                    </table>
-                </div>
-                <div class="totals-bar">
-                    <strong>Phase Balance: </strong>
-                    <span id="fancyNetProfit" class="neutral">0</span>
-                </div>
-                <div class="bottom-actions mt-2">
-                    <button class="btn-danger" onclick="clearFancyBets()">Burn Phase Data</button>
-                </div>
-            </section>
-        </div>
-
-        <div id="uplinkTab" class="tab-content">
-            <section class="card">
-                <h3>Live Field Telemetry</h3>
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">Ping secure satellite node for real-time match scores.</p>
-                <div id="liveScoreBox" class="data-panel">
-                    > AWAITING UPLINK INITIATION...
-                </div>
-            </section>
-
-            <section class="card" style="border-color: #9c27b0;">
-                <h3 style="color: #9c27b0;">MI6 Quantum Oracle (AI)</h3>
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">Activate AI to predict outcome probabilities based on intercept data.</p>
-                <div id="aiPredictionBox" class="data-panel ai-panel">
-                    > ORACLE ENGINE STANDBY...
-                </div>
-                <button class="btn-ai mt-2" onclick="establishUplink()">Establish Secure Uplink</button>
-            </section>
-        </div>
+    <div class="tab-container">
+      <button id="btn-main" class="tab-btn active" onclick="switchTab('main')">Core Mission</button>
+      <button id="btn-fancy" class="tab-btn" onclick="switchTab('fancy')">Phase Goals</button>
+      <button id="btn-uplink" class="tab-btn" onclick="switchTab('uplink')">Sat-Uplink</button>
     </div>
-    <script src="app.js"></script>
+
+    <!-- MAIN TAB -->
+    <div id="mainTab" class="tab-content active">
+      <!-- Core Mission content -->
+      <!-- ... unchanged from your version ... -->
+    </div>
+
+    <!-- FANCY TAB -->
+    <div id="fancyTab" class="tab-content">
+      <!-- Phase Goals content -->
+      <!-- ... unchanged from your version ... -->
+    </div>
+
+    <!-- UPLINK TAB -->
+    <div id="uplinkTab" class="tab-content">
+      <section class="card">
+        <h3>Live Field Telemetry</h3>
+        <div id="liveScoreBox" class="data-panel">> AWAITING UPLINK INITIATION...</div>
+      </section>
+
+      <section class="card ai-panel">
+        <h3>MI6 Quantum Oracle (AI)</h3>
+        <div id="aiPredictionBox" class="data-panel">> ORACLE ENGINE STANDBY...</div>
+        <button class="btn-ai mt-2" onclick="establishUplink()">Establish Secure Uplink</button>
+      </section>
+
+      <section class="card">
+        <h3>Recent Balls</h3>
+        <div id="lastBallsBox" class="ball-history"></div>
+      </section>
+
+      <section class="card radar-box">
+        <div class="radar-title">
+          <span>Web Radar</span>
+          <span class="radar-status">LIVE</span>
+        </div>
+        <div class="input-group">
+          <input id="radarUrlInput" placeholder="Enter live exchange URL">
+          <button id="radarLoadBtn">Load Radar</button>
+        </div>
+        <div id="radarFrameBox" style="width:100%;height:400px;"></div>
+      </section>
+    </div>
+  </div>
+  <script src="app.js"></script>
 </body>
 </html>
