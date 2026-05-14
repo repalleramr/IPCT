@@ -256,7 +256,7 @@ function calculateTable() {
 }
 
 // ==========================================
-// VERCEL SATELLITE ENGINE (STRICT JSON INGESTION)
+// VERCEL SATELLITE ENGINE (DYNAMIC UI RENDERER)
 // ==========================================
 async function pingVercelSatellite() {
     const aiBox = document.getElementById('aiPredictionBox');
@@ -266,7 +266,6 @@ async function pingVercelSatellite() {
     try {
         if (!matchSelect || matchSelect.selectedIndex === -1) throw new Error("UI ERROR: Cannot read mission target.");
         
-        // Pass both the teams and the raw date text for the Countdown Engine
         const rawTextDate = matchSelect.options[matchSelect.selectedIndex].text;
         let teamsOnly = rawTextDate.includes('): ') ? rawTextDate.split('): ')[1].trim() : rawTextDate;
 
@@ -285,59 +284,88 @@ async function pingVercelSatellite() {
         if (data.success && data.match_info) {
             const info = data.match_info;
             
-            // 1. Compile Radar (Ball History)
-            let radarHTML = `<div style="margin-top:15px;"><div style="font-size:0.85rem; color:#8b92a5; margin-bottom:6px;">[RECENT OVERS / RADAR]</div><div style="display:flex; gap:6px; flex-wrap:wrap;">`;
-            info.last_over.forEach(ball => {
-                let bg = '#333'; let color = '#fff';
-                if (ball === 'W') { bg = '#ff4d4d'; } 
-                else if (ball === '4') { bg = '#17a2b8'; } 
-                else if (ball === '6') { bg = '#b366ff'; } 
-                radarHTML += `<span style="background:${bg}; color:${color}; padding:4px 8px; border-radius:4px; font-weight:bold; font-size:0.9rem;">${ball}</span>`;
-            });
-            radarHTML += `</div></div>`;
+            // -------------------------------------------------------------
+            // UI FOR COMPLETED / ABANDONED MATCHES (Clean Summary)
+            // -------------------------------------------------------------
+            if (info.match_state === "completed" || info.match_state === "abandoned") {
+                let badgeColor = "#ff4d4d"; // Red for ended
+                
+                scoreBox.innerHTML = `
+                    <div style="color: #00e676; font-weight: bold; margin-bottom: 10px; font-size:0.85rem;">[${info.title}]</div>
+                    <div style="display:inline-block; background:#1b1e2b; color:${badgeColor}; border:1px solid ${badgeColor}; padding:3px 8px; border-radius:4px; font-size:0.75rem; font-weight:bold; margin-bottom:12px; text-transform:uppercase;">STATE: ${info.match_state}</div>
+                    
+                    <div style="font-size: 1.25rem; font-weight: bold; color: #fff; margin-bottom: 15px; padding-left: 10px; border-left: 3px solid #00e676; line-height: 1.4;">
+                        ${info.result || info.status}
+                    </div>
+                    
+                    <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px;">
+                        ${info.toss && info.toss !== "Awaiting Coin Drop" ? `<div style="color: #b366ff; font-size: 0.85rem; margin-bottom: 5px;">> TOSS: ${info.toss}</div>` : ''}
+                        <div style="color: #8b92a5; font-size: 0.85rem;">> LOC: ${info.venue || 'Location Secure'}</div>
+                    </div>
+                `;
+                
+                aiBox.innerHTML = `
+                    <div style="color: #b366ff; font-size: 1rem; margin-bottom: 5px; font-weight: bold;">> OPERATION ARCHIVED</div>
+                    <div style="color: #8b92a5; font-size: 0.85rem; margin-top: 5px;">Target neutralized. Live telemetry offline.</div>
+                `;
+            } 
+            // -------------------------------------------------------------
+            // UI FOR LIVE / UPCOMING / DELAYED MATCHES (Full Complex UI)
+            // -------------------------------------------------------------
+            else {
+                // 1. Compile Radar
+                let radarHTML = `<div style="margin-top:15px;"><div style="font-size:0.85rem; color:#8b92a5; margin-bottom:6px;">[RECENT OVERS / RADAR]</div><div style="display:flex; gap:6px; flex-wrap:wrap;">`;
+                info.last_over.forEach(ball => {
+                    let bg = '#333'; let color = '#fff';
+                    if (ball === 'W') { bg = '#ff4d4d'; } 
+                    else if (ball === '4') { bg = '#17a2b8'; } 
+                    else if (ball === '6') { bg = '#b366ff'; } 
+                    radarHTML += `<span style="background:${bg}; color:${color}; padding:4px 8px; border-radius:4px; font-weight:bold; font-size:0.9rem;">${ball}</span>`;
+                });
+                radarHTML += `</div></div>`;
 
-            // 2. Compile Match State Badge & Countdown
-            let stateBadgeColor = "#8b92a5";
-            if (info.match_state === "live") stateBadgeColor = "#00e676";
-            if (info.match_state === "completed" || info.match_state === "abandoned") stateBadgeColor = "#ff4d4d";
-            if (info.match_state === "delay" || info.match_state === "countdown") stateBadgeColor = "#ffbb33";
-            
-            let extraDetails = `<div style="display:inline-block; background:#1b1e2b; color:${stateBadgeColor}; border:1px solid ${stateBadgeColor}; padding:2px 6px; border-radius:3px; font-size:0.75rem; font-weight:bold; margin-bottom:8px; text-transform:uppercase;">STATE: ${info.match_state}</div><br>`;
-            
-            if (info.countdown) extraDetails += `<div style="color: #00e676; font-size: 0.95rem; font-weight:bold; margin-bottom: 8px; border:1px dashed #00e676; padding:5px; display:inline-block;">${info.countdown}</div><br>`;
-            if (info.toss) extraDetails += `<div style="color: #b366ff; font-size: 0.85rem; margin-top: 5px; margin-bottom:5px;">> TOSS: ${info.toss}</div>`;
-            if (info.venue) extraDetails += `<div style="color: #8b92a5; font-size: 0.8rem; margin-top: 3px;">> LOC: ${info.venue}</div>`;
+                // 2. Compile Match State Badge & Countdown
+                let stateBadgeColor = "#8b92a5";
+                if (info.match_state === "live") stateBadgeColor = "#00e676";
+                if (info.match_state === "delay" || info.match_state === "countdown" || info.match_state === "pre-match") stateBadgeColor = "#ffbb33";
+                
+                let extraDetails = `<div style="display:inline-block; background:#1b1e2b; color:${stateBadgeColor}; border:1px solid ${stateBadgeColor}; padding:2px 6px; border-radius:3px; font-size:0.75rem; font-weight:bold; margin-bottom:8px; text-transform:uppercase;">STATE: ${info.match_state}</div><br>`;
+                
+                if (info.countdown) extraDetails += `<div style="color: #00e676; font-size: 0.95rem; font-weight:bold; margin-bottom: 8px; border:1px dashed #00e676; padding:5px; display:inline-block;">${info.countdown}</div><br>`;
+                if (info.toss && info.toss !== "Awaiting Coin Drop") extraDetails += `<div style="color: #b366ff; font-size: 0.85rem; margin-top: 5px; margin-bottom:5px;">> TOSS: ${info.toss}</div>`;
+                if (info.venue && info.venue !== "Location Secure") extraDetails += `<div style="color: #8b92a5; font-size: 0.8rem; margin-top: 3px;">> LOC: ${info.venue}</div>`;
 
-            // 3. Compile Live Players
-            let playerDetails = "";
-            if (info.striker || info.bowler) {
-                playerDetails += `<div style="margin-top:10px; border-top: 1px solid #2c3145; padding-top: 8px;">`;
-                if (info.striker) playerDetails += `<div style="color: #00e676; font-size: 0.85rem;">BAT: ${info.striker}*</div>`;
-                if (info.non_striker) playerDetails += `<div style="color: #00e676; font-size: 0.85rem; opacity: 0.7;">BAT: ${info.non_striker}</div>`;
-                if (info.bowler) playerDetails += `<div style="color: #ff4d4d; font-size: 0.85rem; margin-top:3px;">BOWL: ${info.bowler}</div>`;
-                playerDetails += `</div>`;
+                // 3. Compile Live Players
+                let playerDetails = "";
+                if (info.striker || info.bowler) {
+                    playerDetails += `<div style="margin-top:10px; border-top: 1px solid #2c3145; padding-top: 8px;">`;
+                    if (info.striker) playerDetails += `<div style="color: #00e676; font-size: 0.85rem;">BAT: ${info.striker}*</div>`;
+                    if (info.non_striker) playerDetails += `<div style="color: #00e676; font-size: 0.85rem; opacity: 0.7;">BAT: ${info.non_striker}</div>`;
+                    if (info.bowler) playerDetails += `<div style="color: #ff4d4d; font-size: 0.85rem; margin-top:3px;">BOWL: ${info.bowler}</div>`;
+                    playerDetails += `</div>`;
+                }
+
+                // 4. Build ScoreBox UI
+                scoreBox.innerHTML = `
+                    <div style="color: #00e676; font-weight: bold; margin-bottom: 8px; font-size:0.85rem;">[${info.title}]</div>
+                    ${extraDetails}
+                    <div style="font-size: 1.4rem; font-weight: bold; color: #fff;">${info.live_score}</div>
+                    <div style="color: #ffbb33; font-size: 0.9rem; margin-top: 5px;">${info.status}</div>
+                    ${playerDetails}
+                    ${info.match_state === "pre-match" || info.match_state === "countdown" || info.match_state === "standby" ? "" : radarHTML}
+                `;
+                
+                // 5. Build Oracle Box UI
+                let rrHTML = "";
+                if (info.current_rr) rrHTML += `CRR: ${info.current_rr} | `;
+                if (info.required_rr) rrHTML += `RRR: ${info.required_rr}`;
+                if (info.target) rrHTML += `<br><span style="color:#00e676; font-weight:bold; margin-top:5px; display:inline-block;">TARGET: ${info.target}</span>`;
+
+                aiBox.innerHTML = `
+                    <div style="color: #b366ff; font-size: 1rem; margin-bottom: 5px; font-weight: bold;">> PROJECTION: ${info.prediction}</div>
+                    <div style="color: #8b92a5; font-size: 0.85rem; margin-top: 5px;">${rrHTML}</div>
+                `;
             }
-
-            // 4. Build ScoreBox UI
-            scoreBox.innerHTML = `
-                <div style="color: #00e676; font-weight: bold; margin-bottom: 8px; font-size:0.85rem;">[${info.title}]</div>
-                ${extraDetails}
-                <div style="font-size: 1.4rem; font-weight: bold; color: #fff;">${info.live_score}</div>
-                <div style="color: #ffbb33; font-size: 0.9rem; margin-top: 5px;">${info.status}</div>
-                ${playerDetails}
-                ${radarHTML}
-            `;
-            
-            // 5. Build Oracle Box UI
-            let rrHTML = "";
-            if (info.current_rr) rrHTML += `CRR: ${info.current_rr} | `;
-            if (info.required_rr) rrHTML += `RRR: ${info.required_rr}`;
-            if (info.target) rrHTML += `<br><span style="color:#00e676; font-weight:bold; margin-top:5px; display:inline-block;">TARGET: ${info.target}</span>`;
-
-            aiBox.innerHTML = `
-                <div style="color: #b366ff; font-size: 1rem; margin-bottom: 5px; font-weight: bold;">> PROJECTION: ${info.prediction}</div>
-                <div style="color: #8b92a5; font-size: 0.85rem; margin-top: 5px;">${rrHTML}</div>
-            `;
 
         } else {
             aiBox.innerHTML = "> SATELLITE REJECTED.";
