@@ -103,9 +103,8 @@ function loadSelectedMatch() {
         team2Name = teams[1] ? teams[1].trim() : "Target B";
     } else { team1Name = "Target A"; team2Name = "Target B"; }
     
-    if(liveMatchEngine) clearInterval(liveMatchEngine);
-    document.getElementById('liveScoreBox').innerHTML = "> AWAITING UPLINK INITIATION...";
-    document.getElementById('aiPredictionBox').innerHTML = "> ORACLE ENGINE STANDBY...";
+    // Disconnect Uplink if switching targets manually
+    disconnectUplink();
 
     updateDropdowns();
     calculateTable();
@@ -308,12 +307,14 @@ async function pingVercelSatellite() {
                     <div style="color: #b366ff; font-size: 1rem; margin-bottom: 5px; font-weight: bold;">> OPERATION ARCHIVED</div>
                     <div style="color: #8b92a5; font-size: 0.85rem; margin-top: 5px;">Target neutralized. Live telemetry offline.</div>
                 `;
+
+                // AUTO-KILL PROTOCOL: Match ended, stop polling the server.
+                disconnectUplink(true);
             } 
             // -------------------------------------------------------------
             // UI FOR LIVE / UPCOMING / DELAYED MATCHES (Full Complex UI)
             // -------------------------------------------------------------
             else {
-                // 1. Compile Radar
                 let radarHTML = `<div style="margin-top:15px;"><div style="font-size:0.85rem; color:#8b92a5; margin-bottom:6px;">[RECENT OVERS / RADAR]</div><div style="display:flex; gap:6px; flex-wrap:wrap;">`;
                 info.last_over.forEach(ball => {
                     let bg = '#333'; let color = '#fff';
@@ -324,7 +325,6 @@ async function pingVercelSatellite() {
                 });
                 radarHTML += `</div></div>`;
 
-                // 2. Compile Match State Badge & Countdown
                 let stateBadgeColor = "#8b92a5";
                 if (info.match_state === "live") stateBadgeColor = "#00e676";
                 if (info.match_state === "delay" || info.match_state === "countdown" || info.match_state === "pre-match") stateBadgeColor = "#ffbb33";
@@ -335,17 +335,15 @@ async function pingVercelSatellite() {
                 if (info.toss && info.toss !== "Awaiting Coin Drop") extraDetails += `<div style="color: #b366ff; font-size: 0.85rem; margin-top: 5px; margin-bottom:5px;">> TOSS: ${info.toss}</div>`;
                 if (info.venue && info.venue !== "Location Secure") extraDetails += `<div style="color: #8b92a5; font-size: 0.8rem; margin-top: 3px;">> LOC: ${info.venue}</div>`;
 
-                // 3. Compile Live Players
                 let playerDetails = "";
                 if (info.striker || info.bowler) {
                     playerDetails += `<div style="margin-top:10px; border-top: 1px solid #2c3145; padding-top: 8px;">`;
-                    if (info.striker) playerDetails += `<div style="color: #00e676; font-size: 0.85rem;">BAT: ${info.striker}*</div>`;
+                    if (info.striker) playerDetails += `<div style="color: #00e676; font-size: 0.85rem;">BAT: ${info.striker}</div>`;
                     if (info.non_striker) playerDetails += `<div style="color: #00e676; font-size: 0.85rem; opacity: 0.7;">BAT: ${info.non_striker}</div>`;
                     if (info.bowler) playerDetails += `<div style="color: #ff4d4d; font-size: 0.85rem; margin-top:3px;">BOWL: ${info.bowler}</div>`;
                     playerDetails += `</div>`;
                 }
 
-                // 4. Build ScoreBox UI
                 scoreBox.innerHTML = `
                     <div style="color: #00e676; font-weight: bold; margin-bottom: 8px; font-size:0.85rem;">[${info.title}]</div>
                     ${extraDetails}
@@ -355,15 +353,20 @@ async function pingVercelSatellite() {
                     ${info.match_state === "pre-match" || info.match_state === "countdown" || info.match_state === "standby" ? "" : radarHTML}
                 `;
                 
-                // 5. Build Oracle Box UI
                 let rrHTML = "";
                 if (info.current_rr) rrHTML += `CRR: ${info.current_rr} | `;
                 if (info.required_rr) rrHTML += `RRR: ${info.required_rr}`;
                 if (info.target) rrHTML += `<br><span style="color:#00e676; font-weight:bold; margin-top:5px; display:inline-block;">TARGET: ${info.target}</span>`;
 
+                // Handle the multiline Oracle prediction properly
+                let formattedPrediction = info.prediction.replace(/\n/g, '<br>');
+
                 aiBox.innerHTML = `
-                    <div style="color: #b366ff; font-size: 1rem; margin-bottom: 5px; font-weight: bold;">> PROJECTION: ${info.prediction}</div>
-                    <div style="color: #8b92a5; font-size: 0.85rem; margin-top: 5px;">${rrHTML}</div>
+                    <div style="color: #b366ff; font-size: 1rem; margin-bottom: 5px; font-weight: bold;">> ORACLE ENGINE:</div>
+                    <div style="color: #00e676; font-size: 0.95rem; font-weight:bold; margin-top: 5px; padding:8px; background: rgba(0, 230, 118, 0.1); border-radius: 4px; border: 1px dashed #00e676;">
+                        ${formattedPrediction}
+                    </div>
+                    <div style="color: #8b92a5; font-size: 0.85rem; margin-top: 8px;">${rrHTML}</div>
                 `;
             }
 
@@ -382,14 +385,51 @@ async function pingVercelSatellite() {
     }
 }
 
+// ==========================================
+// UPLINK CONTROL MODULE (PERSISTENT)
+// ==========================================
 function establishUplink() {
+    safeSet('mi6_uplink_active', 'true');
     document.getElementById('aiPredictionBox').innerHTML = "> BYPASSING CACHE...";
     document.getElementById('liveScoreBox').innerHTML = "> PINGING SATELLITE...";
     
     if (liveMatchEngine) clearInterval(liveMatchEngine);
-    pingVercelSatellite();
-    liveMatchEngine = setInterval(pingVercelSatellite, 20000); 
+    pingVercelSatellite(); // Ping instantly
+    liveMatchEngine = setInterval(pingVercelSatellite, 10000); // 10 second polling
+    
+    // UI Button Morph
+    try {
+        let btn = document.querySelector('button[onclick="establishUplink()"]') || document.querySelector('button[onclick="disconnectUplink()"]');
+        if (btn) {
+            btn.innerText = "DISCONNECT UPLINK";
+            btn.onclick = disconnectUplink;
+            btn.style.background = "#ff4d4d"; 
+            btn.style.color = "#fff";
+        }
+    } catch(e){}
 }
+
+function disconnectUplink(isAutoKill = false) {
+    safeSet('mi6_uplink_active', 'false');
+    if (liveMatchEngine) clearInterval(liveMatchEngine);
+    liveMatchEngine = null;
+    
+    if (!isAutoKill) {
+        document.getElementById('aiPredictionBox').innerHTML = "> ORACLE ENGINE STANDBY...";
+        document.getElementById('liveScoreBox').innerHTML = "> UPLINK SEVERED.";
+    }
+    
+    // UI Button Morph Reset
+    try {
+        let btn = document.querySelector('button[onclick="disconnectUplink()"]') || document.querySelector('button[onclick="establishUplink()"]');
+        if (btn) {
+            btn.innerText = "ESTABLISH SECURE UPLINK";
+            btn.onclick = establishUplink;
+            btn.style.background = "var(--primary)"; // Restores default purple
+        }
+    } catch(e){}
+}
+
 
 // --- BOOTSTRAP INIT ---
 initMatchList();
@@ -408,3 +448,8 @@ try {
         calculateTable(); 
     } else { updateDropdowns(); }
 } catch (error) { if(isStorageSafe) localStorage.removeItem('mi6_ledger_data'); updateDropdowns(); }
+
+// PERSISTENCE RESUME: Auto-start if it was running before page refresh
+if (safeGet('mi6_uplink_active') === 'true') {
+    setTimeout(() => { establishUplink(); }, 500); 
+}
