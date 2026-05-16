@@ -23,11 +23,12 @@ function safeGet(key) {
 }
 
 let bets = [];
+let phaseBets = []; // NEW: Separate Ledger for Phase Goals
 let team1Name = "Target A";
 let team2Name = "Target B";
 let editingIndex = -1; 
 let liveMatchEngine = null;
-let globalPingSequence = 0; // Sequence Lock Added
+let globalPingSequence = 0; 
 
 const iplMatches = [
     "May 11 (7:30 PM): Punjab Kings vs Delhi Capitals",
@@ -82,12 +83,69 @@ function saveState() {
     safeSet('mi6_ledger_data', JSON.stringify(state));
 }
 
+// --- NEW: PHASE GOALS LOGIC ---
+function savePhaseState() {
+    safeSet('mi6_phase_ledger', JSON.stringify(phaseBets));
+}
+
+function loadPhaseState() {
+    let saved = safeGet('mi6_phase_ledger');
+    if (saved) {
+        try { phaseBets = JSON.parse(saved); renderPhaseTable(); } catch(e){}
+    }
+}
+
+function addPhaseBet() {
+    let type = document.getElementById('phaseType').value;
+    let runs = document.getElementById('phaseRuns').value;
+    let action = document.getElementById('phaseAction').value;
+    let stake = document.getElementById('phaseStake').value;
+
+    if(!runs || !stake) return alert("Mission Control: Required Intel Missing.");
+
+    phaseBets.push({ type, runs, action, stake });
+    savePhaseState();
+    renderPhaseTable();
+    
+    document.getElementById('phaseRuns').value = '';
+    document.getElementById('phaseStake').value = '';
+}
+
+function deletePhaseBet(index) {
+    if(confirm("Scrub this Phase entry?")) {
+        phaseBets.splice(index, 1);
+        savePhaseState();
+        renderPhaseTable();
+    }
+}
+
+function renderPhaseTable() {
+    let tbody = document.getElementById('phaseTableBody');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+    phaseBets.forEach((b, i) => {
+        let color = b.action === 'YES' ? '#00e676' : '#ff4d4d';
+        let tr = document.createElement('tr');
+        tr.style.borderBottom = "1px solid rgba(255,255,255,0.05)";
+        tr.innerHTML = `
+            <td style="padding: 8px 4px;">${b.type.replace(' Overs', 'v')}</td>
+            <td style="padding: 8px 4px; font-weight:bold;">${b.runs}</td>
+            <td style="padding: 8px 4px; color:${color}; font-weight:bold;">${b.action}</td>
+            <td style="padding: 8px 4px;">${b.stake}</td>
+            <td style="padding: 8px 4px;"><button onclick="deletePhaseBet(${i})" style="background:var(--danger, #ff4d4d);color:#fff;border:none;padding:2px 6px;border-radius:3px;">X</button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+// ------------------------------
+
 function loadSelectedMatch() {
-    if (bets.length > 0) {
-        if (confirm("Initiate new mission? This will burn current core logs.")) {
-            bets = []; editingIndex = -1;
+    if (bets.length > 0 || phaseBets.length > 0) {
+        if (confirm("Initiate new mission? This will burn current core logs and phase ledgers.")) {
+            bets = []; phaseBets = []; editingIndex = -1;
             document.getElementById('addBetBtn').innerText = "EXECUTE DIRECTIVE";
             document.getElementById('finalWinner').value = "";
+            renderPhaseTable();
         } else {
             const saved = safeGet('mi6_ledger_data');
             if(saved) { try { document.getElementById('matchSelect').value = JSON.parse(saved).match || ""; } catch(e){} }
@@ -205,10 +263,10 @@ function deleteBet(index) {
 
 function clearBets() {
     if(confirm("Confirm Protocol Zero: Burn all CORE data?")) {
-        bets = []; editingIndex = -1;
+        bets = []; phaseBets = []; editingIndex = -1;
         document.getElementById('addBetBtn').innerText = "EXECUTE DIRECTIVE";
         document.getElementById('finalWinner').value = "";
-        updateLivePreview(); calculateTable();
+        updateLivePreview(); calculateTable(); renderPhaseTable();
     }
 }
 
@@ -243,7 +301,7 @@ function calculateTable() {
             <td>${formatMoney(bet.favPL)}</td>
             <td>${formatMoney(bet.oppPL)}</td>
             <td>${isFinal ? formatMoney(finalPL) : '-'}</td>
-            <td><button onclick="deleteBet(${index})" style="background:var(--danger);color:#fff;border:none;padding:4px;border-radius:3px;">X</button></td>
+            <td><button onclick="deleteBet(${index})" style="background:var(--danger,#ff4d4d);color:#fff;border:none;padding:4px;border-radius:3px;">X</button></td>
         `;
         tbody.appendChild(tr);
     });
@@ -253,10 +311,11 @@ function calculateTable() {
 
 async function pingVercelSatellite() {
     globalPingSequence++;
-    const currentActiveSequence = globalPingSequence; // THE SEQUENCE LOCK
+    const currentActiveSequence = globalPingSequence; 
     
     const aiBox = document.getElementById('aiPredictionBox');
     const scoreBox = document.getElementById('liveScoreBox');
+    const phaseIntelBox = document.getElementById('phaseIntel'); // Target new HTML box
     const matchSelect = document.getElementById('matchSelect');
 
     try {
@@ -275,18 +334,14 @@ async function pingVercelSatellite() {
         if (!response.ok) throw new Error(`VERCEL BLOCKED: ${response.status}`);
         
         const rawText = await response.text(); 
-        
-        // CHECK SEQUENCE LOCK - If a new request has already fired while we waited, abort this render.
-        if (currentActiveSequence !== globalPingSequence) {
-            console.log("Ghost Packet Detected & Destroyed.");
-            return; 
-        }
+        if (currentActiveSequence !== globalPingSequence) return; 
 
         const data = JSON.parse(rawText);
 
         if (data.success && data.match_info) {
             const info = data.match_info;
             
+            // --- UI FOR COMPLETED MATCHES ---
             if (info.match_state === "completed" || info.match_state === "abandoned") {
                 let badgeColor = "#ff4d4d"; 
                 scoreBox.innerHTML = `
@@ -295,17 +350,14 @@ async function pingVercelSatellite() {
                     <div style="font-size: 1.25rem; font-weight: bold; color: #fff; margin-bottom: 15px; padding-left: 10px; border-left: 3px solid #00e676; line-height: 1.4;">
                         ${info.result || info.status}
                     </div>
-                    <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px;">
-                        ${info.toss && info.toss !== "Awaiting Coin Drop" ? `<div style="color: #b366ff; font-size: 0.85rem; margin-bottom: 5px;">> TOSS: ${info.toss}</div>` : ''}
-                        <div style="color: #8b92a5; font-size: 0.85rem;">> LOC: ${info.venue || 'Location Secure'}</div>
-                    </div>
                 `;
-                aiBox.innerHTML = `
-                    <div style="color: #b366ff; font-size: 1rem; margin-bottom: 5px; font-weight: bold;">> OPERATION ARCHIVED</div>
-                    <div style="color: #8b92a5; font-size: 0.85rem; margin-top: 5px;">Target neutralized. Live telemetry offline.</div>
-                `;
+                aiBox.innerHTML = `<div style="color: #b366ff; font-size: 1rem; font-weight: bold;">> OPERATION ARCHIVED</div>`;
+                if(phaseIntelBox) phaseIntelBox.innerHTML = `<div style="color: #8b92a5;">Match Concluded. Phase tracking disabled.</div>`;
+                
                 disconnectUplink(true);
-            } else {
+            } 
+            // --- UI FOR LIVE MATCHES ---
+            else {
                 let radarHTML = `<div style="margin-top:15px;"><div style="font-size:0.85rem; color:#8b92a5; margin-bottom:6px;">[RECENT OVERS / RADAR]</div><div style="display:flex; gap:6px; flex-wrap:wrap;">`;
                 info.last_over.forEach(ball => {
                     let bg = '#333'; let color = '#fff';
@@ -316,16 +368,9 @@ async function pingVercelSatellite() {
                 });
                 radarHTML += `</div></div>`;
 
-                let stateBadgeColor = "#8b92a5";
-                if (info.match_state === "live") stateBadgeColor = "#00e676";
-                if (info.match_state === "delay" || info.match_state === "countdown" || info.match_state === "pre-match") stateBadgeColor = "#ffbb33";
-                
+                let stateBadgeColor = info.match_state === "live" ? "#00e676" : "#ffbb33";
                 let extraDetails = `<div style="display:inline-block; background:#1b1e2b; color:${stateBadgeColor}; border:1px solid ${stateBadgeColor}; padding:2px 6px; border-radius:3px; font-size:0.75rem; font-weight:bold; margin-bottom:8px; text-transform:uppercase;">STATE: ${info.match_state}</div><br>`;
                 
-                if (info.countdown) extraDetails += `<div style="color: #00e676; font-size: 0.95rem; font-weight:bold; margin-bottom: 8px; border:1px dashed #00e676; padding:5px; display:inline-block;">${info.countdown}</div><br>`;
-                if (info.toss && info.toss !== "Awaiting Coin Drop") extraDetails += `<div style="color: #b366ff; font-size: 0.85rem; margin-top: 5px; margin-bottom:5px;">> TOSS: ${info.toss}</div>`;
-                if (info.venue && info.venue !== "Location Secure") extraDetails += `<div style="color: #8b92a5; font-size: 0.8rem; margin-top: 3px;">> LOC: ${info.venue}</div>`;
-
                 let playerDetails = "";
                 if (info.striker || info.bowler) {
                     playerDetails += `<div style="margin-top:10px; border-top: 1px solid #2c3145; padding-top: 8px;">`;
@@ -341,16 +386,15 @@ async function pingVercelSatellite() {
                     <div style="font-size: 1.4rem; font-weight: bold; color: #fff;">${info.live_score}</div>
                     <div style="color: #ffbb33; font-size: 0.9rem; margin-top: 5px;">${info.status}</div>
                     ${playerDetails}
-                    ${info.match_state === "pre-match" || info.match_state === "countdown" || info.match_state === "standby" ? "" : radarHTML}
+                    ${info.match_state === "pre-match" || info.match_state === "standby" ? "" : radarHTML}
                 `;
                 
                 let rrHTML = "";
                 if (info.current_rr) rrHTML += `CRR: ${info.current_rr} | `;
                 if (info.required_rr) rrHTML += `RRR: ${info.required_rr}`;
-                if (info.target) rrHTML += `<br><span style="color:#00e676; font-weight:bold; margin-top:5px; display:inline-block;">TARGET: ${info.target}</span>`;
 
+                // Inject Main AI Box
                 let formattedPrediction = info.prediction.replace(/\n/g, '<br>');
-
                 aiBox.innerHTML = `
                     <div style="color: #b366ff; font-size: 1rem; margin-bottom: 5px; font-weight: bold;">> ORACLE ENGINE:</div>
                     <div style="color: #00e676; font-size: 0.95rem; font-weight:bold; margin-top: 5px; padding:8px; background: rgba(0, 230, 118, 0.1); border-radius: 4px; border: 1px dashed #00e676;">
@@ -358,6 +402,30 @@ async function pingVercelSatellite() {
                     </div>
                     <div style="color: #8b92a5; font-size: 0.85rem; margin-top: 8px;">${rrHTML}</div>
                 `;
+
+                // --- INJECT PHASE GOALS TAB ---
+                if (phaseIntelBox) {
+                    if (info.prediction && info.prediction.includes('TARGETS:')) {
+                        let targetsText = info.prediction.split('\n')[0].replace('TARGETS: ', '');
+                        let chipsHtml = "";
+                        let regex = /\[(\d+v):\s*(\d+)\]/g;
+                        let match;
+                        while ((match = regex.exec(targetsText)) !== null) {
+                            chipsHtml += `<div style="background:#2c3145; padding:6px 12px; border-radius:4px; margin-right:8px; margin-bottom:8px; display:inline-block; font-weight:bold; font-size:1rem; border:1px solid #00e676;"><span style="color:#8b92a5; margin-right:4px;">${match[1]}</span> <span style="color:#00e676;">${match[2]}</span></div>`;
+                        }
+                        phaseIntelBox.innerHTML = `
+                            <div style="color: #b366ff; font-size: 0.85rem; font-weight: bold; margin-bottom: 8px; text-transform: uppercase;">> ACTIVE SESSION PROJECTIONS</div>
+                            <div>${chipsHtml}</div>
+                        `;
+                    } else if (info.prediction && info.prediction.includes('CHASE ORACLE')) {
+                        phaseIntelBox.innerHTML = `
+                            <div style="color: #b366ff; font-size: 0.85rem; font-weight: bold; margin-bottom: 8px; text-transform: uppercase;">> ACTIVE RUN CHASE</div>
+                            <div style="color: #00e676; font-size: 1rem; border: 1px solid #00e676; background:rgba(0,230,118,0.1); padding: 8px 12px; display: inline-block; border-radius: 4px; font-weight:bold;">${info.required_rr === "YAHOO: No REQ" ? "Awaiting Targets" : "REQ RR: " + info.required_rr}</div>
+                        `;
+                    } else {
+                        phaseIntelBox.innerHTML = `<div style="color: #8b92a5; font-size: 0.85rem;">Phase Intel Scanning...</div>`;
+                    }
+                }
             }
 
         } else {
@@ -412,11 +480,12 @@ function disconnectUplink(isAutoKill = false) {
         if (btn) {
             btn.innerText = "ESTABLISH SECURE UPLINK";
             btn.onclick = establishUplink;
-            btn.style.background = "var(--primary)"; 
+            btn.style.background = "var(--primary, #b366ff)"; 
         }
     } catch(e){}
 }
 
+// INIT SEQUENCE
 initMatchList();
 try {
     const savedData = safeGet('mi6_ledger_data');
@@ -433,6 +502,8 @@ try {
         calculateTable(); 
     } else { updateDropdowns(); }
 } catch (error) { if(isStorageSafe) localStorage.removeItem('mi6_ledger_data'); updateDropdowns(); }
+
+loadPhaseState(); // Load new phase ledger memory
 
 if (safeGet('mi6_uplink_active') === 'true') {
     setTimeout(() => { establishUplink(); }, 500); 
