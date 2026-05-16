@@ -1,6 +1,5 @@
 console.log("MI6 System Booting on Android Chrome...");
 
-// --- SAFE STORAGE WRAPPER ---
 let isStorageSafe = false;
 let memoryStorage = {};
 
@@ -23,12 +22,12 @@ function safeGet(key) {
     return memoryStorage[key] || null;
 }
 
-// --- GLOBAL VARIABLES ---
 let bets = [];
 let team1Name = "Target A";
 let team2Name = "Target B";
 let editingIndex = -1; 
 let liveMatchEngine = null;
+let globalPingSequence = 0; // Sequence Lock Added
 
 const iplMatches = [
     "May 11 (7:30 PM): Punjab Kings vs Delhi Capitals",
@@ -103,9 +102,7 @@ function loadSelectedMatch() {
         team2Name = teams[1] ? teams[1].trim() : "Target B";
     } else { team1Name = "Target A"; team2Name = "Target B"; }
     
-    // Disconnect Uplink if switching targets manually
     disconnectUplink();
-
     updateDropdowns();
     calculateTable();
 }
@@ -254,10 +251,10 @@ function calculateTable() {
     saveState();
 }
 
-// ==========================================
-// VERCEL SATELLITE ENGINE (DYNAMIC UI RENDERER)
-// ==========================================
 async function pingVercelSatellite() {
+    globalPingSequence++;
+    const currentActiveSequence = globalPingSequence; // THE SEQUENCE LOCK
+    
     const aiBox = document.getElementById('aiPredictionBox');
     const scoreBox = document.getElementById('liveScoreBox');
     const matchSelect = document.getElementById('matchSelect');
@@ -278,43 +275,37 @@ async function pingVercelSatellite() {
         if (!response.ok) throw new Error(`VERCEL BLOCKED: ${response.status}`);
         
         const rawText = await response.text(); 
+        
+        // CHECK SEQUENCE LOCK - If a new request has already fired while we waited, abort this render.
+        if (currentActiveSequence !== globalPingSequence) {
+            console.log("Ghost Packet Detected & Destroyed.");
+            return; 
+        }
+
         const data = JSON.parse(rawText);
 
         if (data.success && data.match_info) {
             const info = data.match_info;
             
-            // -------------------------------------------------------------
-            // UI FOR COMPLETED / ABANDONED MATCHES (Clean Summary)
-            // -------------------------------------------------------------
             if (info.match_state === "completed" || info.match_state === "abandoned") {
-                let badgeColor = "#ff4d4d"; // Red for ended
-                
+                let badgeColor = "#ff4d4d"; 
                 scoreBox.innerHTML = `
                     <div style="color: #00e676; font-weight: bold; margin-bottom: 10px; font-size:0.85rem;">[${info.title}]</div>
                     <div style="display:inline-block; background:#1b1e2b; color:${badgeColor}; border:1px solid ${badgeColor}; padding:3px 8px; border-radius:4px; font-size:0.75rem; font-weight:bold; margin-bottom:12px; text-transform:uppercase;">STATE: ${info.match_state}</div>
-                    
                     <div style="font-size: 1.25rem; font-weight: bold; color: #fff; margin-bottom: 15px; padding-left: 10px; border-left: 3px solid #00e676; line-height: 1.4;">
                         ${info.result || info.status}
                     </div>
-                    
                     <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px;">
                         ${info.toss && info.toss !== "Awaiting Coin Drop" ? `<div style="color: #b366ff; font-size: 0.85rem; margin-bottom: 5px;">> TOSS: ${info.toss}</div>` : ''}
                         <div style="color: #8b92a5; font-size: 0.85rem;">> LOC: ${info.venue || 'Location Secure'}</div>
                     </div>
                 `;
-                
                 aiBox.innerHTML = `
                     <div style="color: #b366ff; font-size: 1rem; margin-bottom: 5px; font-weight: bold;">> OPERATION ARCHIVED</div>
                     <div style="color: #8b92a5; font-size: 0.85rem; margin-top: 5px;">Target neutralized. Live telemetry offline.</div>
                 `;
-
-                // AUTO-KILL PROTOCOL: Match ended, stop polling the server.
                 disconnectUplink(true);
-            } 
-            // -------------------------------------------------------------
-            // UI FOR LIVE / UPCOMING / DELAYED MATCHES (Full Complex UI)
-            // -------------------------------------------------------------
-            else {
+            } else {
                 let radarHTML = `<div style="margin-top:15px;"><div style="font-size:0.85rem; color:#8b92a5; margin-bottom:6px;">[RECENT OVERS / RADAR]</div><div style="display:flex; gap:6px; flex-wrap:wrap;">`;
                 info.last_over.forEach(ball => {
                     let bg = '#333'; let color = '#fff';
@@ -358,7 +349,6 @@ async function pingVercelSatellite() {
                 if (info.required_rr) rrHTML += `RRR: ${info.required_rr}`;
                 if (info.target) rrHTML += `<br><span style="color:#00e676; font-weight:bold; margin-top:5px; display:inline-block;">TARGET: ${info.target}</span>`;
 
-                // Handle the multiline Oracle prediction properly
                 let formattedPrediction = info.prediction.replace(/\n/g, '<br>');
 
                 aiBox.innerHTML = `
@@ -375,6 +365,8 @@ async function pingVercelSatellite() {
             scoreBox.innerHTML = `> ERROR: ${data.error || "Bad Matrix Data"}`;
         }
     } catch (err) {
+        if (currentActiveSequence !== globalPingSequence) return; 
+        
         if (err.name === 'AbortError') {
             scoreBox.innerHTML = `> CONNECTION TIMED OUT (8s)`;
             aiBox.innerHTML = `> YOUR PHONE CACHE/NETWORK BLOCKED VERCEL`;
@@ -385,19 +377,15 @@ async function pingVercelSatellite() {
     }
 }
 
-// ==========================================
-// UPLINK CONTROL MODULE (PERSISTENT)
-// ==========================================
 function establishUplink() {
     safeSet('mi6_uplink_active', 'true');
     document.getElementById('aiPredictionBox').innerHTML = "> BYPASSING CACHE...";
     document.getElementById('liveScoreBox').innerHTML = "> PINGING SATELLITE...";
     
     if (liveMatchEngine) clearInterval(liveMatchEngine);
-    pingVercelSatellite(); // Ping instantly
-    liveMatchEngine = setInterval(pingVercelSatellite, 10000); // 10 second polling
+    pingVercelSatellite(); 
+    liveMatchEngine = setInterval(pingVercelSatellite, 10000); 
     
-    // UI Button Morph
     try {
         let btn = document.querySelector('button[onclick="establishUplink()"]') || document.querySelector('button[onclick="disconnectUplink()"]');
         if (btn) {
@@ -419,19 +407,16 @@ function disconnectUplink(isAutoKill = false) {
         document.getElementById('liveScoreBox').innerHTML = "> UPLINK SEVERED.";
     }
     
-    // UI Button Morph Reset
     try {
         let btn = document.querySelector('button[onclick="disconnectUplink()"]') || document.querySelector('button[onclick="establishUplink()"]');
         if (btn) {
             btn.innerText = "ESTABLISH SECURE UPLINK";
             btn.onclick = establishUplink;
-            btn.style.background = "var(--primary)"; // Restores default purple
+            btn.style.background = "var(--primary)"; 
         }
     } catch(e){}
 }
 
-
-// --- BOOTSTRAP INIT ---
 initMatchList();
 try {
     const savedData = safeGet('mi6_ledger_data');
@@ -449,7 +434,6 @@ try {
     } else { updateDropdowns(); }
 } catch (error) { if(isStorageSafe) localStorage.removeItem('mi6_ledger_data'); updateDropdowns(); }
 
-// PERSISTENCE RESUME: Auto-start if it was running before page refresh
 if (safeGet('mi6_uplink_active') === 'true') {
     setTimeout(() => { establishUplink(); }, 500); 
 }
