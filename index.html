@@ -90,8 +90,54 @@
 
     <div id="phasesTab" class="tab-content">
         <div class="section-card">
-            <div class="section-header" style="color: #aaa;">PHASE TRACKING STANDBY</div>
-            <p style="color: #666; font-size: 0.9rem; text-align: center; margin-top: 15px;">Awaiting Phase Intel...</p>
+            
+            <div class="phase-intel-card" id="phaseIntel" style="background: #1b1e2b; padding: 12px; border-radius: 6px; border-left: 3px solid #b366ff; margin-bottom: 15px;">
+                <div style="color: #b366ff; font-weight: bold; margin-bottom: 5px;">> PHASE TRACKING STANDBY</div>
+                <div style="color: #8b92a5; font-size: 0.85rem;">Awaiting Phase Intel from Uplink...</div>
+            </div>
+
+            <div class="phase-entry-card" style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 6px; border: 1px solid #2c3145;">
+                <h4 style="color: #00e676; margin-top: 0; margin-bottom: 12px; font-size: 0.95rem;">> LOG SESSION DIRECTIVE</h4>
+                
+                <select id="phaseType" style="width: 100%; margin-bottom: 10px; padding: 10px; background: #0f111a; color: #fff; border: 1px solid #2c3145; border-radius: 4px;">
+                    <option value="6 Overs">6 Overs</option>
+                    <option value="10 Overs">10 Overs</option>
+                    <option value="15 Overs">15 Overs</option>
+                    <option value="20 Overs">20 Overs</option>
+                    <option value="Fall of Wicket">Fall of Wicket</option>
+                </select>
+                
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <input type="number" id="phaseRuns" placeholder="Target Runs (e.g. 52)" style="width: 50%; padding: 10px; background: #0f111a; color: #fff; border: 1px solid #2c3145; border-radius: 4px;">
+                    <select id="phaseAction" style="width: 50%; padding: 10px; background: #0f111a; color: #fff; border: 1px solid #2c3145; border-radius: 4px;">
+                        <option value="YES">YES (Make)</option>
+                        <option value="NO">NO (Stop)</option>
+                    </select>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                    <input type="number" id="phaseStake" placeholder="Stake Amount" style="width: 100%; padding: 10px; background: #0f111a; color: #fff; border: 1px solid #2c3145; border-radius: 4px;">
+                </div>
+                
+                <button onclick="addPhaseBet()" style="width: 100%; padding: 12px; background: #b366ff; color: #fff; border: none; border-radius: 4px; font-weight: bold; letter-spacing: 1px; cursor: pointer;">COMMIT SESSION</button>
+            </div>
+
+            <div style="margin-top: 15px; overflow-x: auto; background: #1b1e2b; border-radius: 6px; padding: 10px;">
+                <table style="width: 100%; text-align: left; color: #fff; font-size: 0.85rem; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid #2c3145; color: #8b92a5;">
+                            <th style="padding: 8px 4px;">PHASE</th>
+                            <th style="padding: 8px 4px;">RUNS</th>
+                            <th style="padding: 8px 4px;">ACT</th>
+                            <th style="padding: 8px 4px;">STAKE</th>
+                            <th style="padding: 8px 4px;">X</th>
+                        </tr>
+                    </thead>
+                    <tbody id="phaseTableBody">
+                        </tbody>
+                </table>
+            </div>
+
         </div>
     </div>
 
